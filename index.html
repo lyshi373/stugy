@@ -27,21 +27,22 @@
   .top-bar{
     background:linear-gradient(135deg,#1890FF 0%,#40A9FF 50%,#69C0FF 100%);
     padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top));
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;align-items:center;justify-content:center;
     box-shadow:0 2px 8px rgba(0,0,0,.3);
     position:sticky;top:0;z-index:100;
   }
-  .top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+  .top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;justify-content:center;position:relative;}
   .back-btn{
     background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
     color:#fff;width:32px;height:32px;border-radius:8px;
     display:none;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;flex-shrink:0;transition:background .2s;
+    position:absolute;left:0;
     padding:0;line-height:1;
   }
   .back-btn:hover{background:rgba(255,255,255,.35);}
   .back-btn.show{display:flex;}
-  .top-title{color:#fff;font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
+  .top-title{color:#fff;font-size:22px;font-weight:600;display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;justify-content:center;text-align:center;}
   .top-title .logo{
     background:rgba(255,255,255,.2);padding:3px 9px;border-radius:6px;
     font-size:13px;font-weight:700;flex-shrink:0;
@@ -204,6 +205,63 @@
     .restore-fab{padding:6px 10px;font-size:11px;bottom:64px;}
     .restore-fab-label{max-width:60px;overflow:hidden;text-overflow:ellipsis;}
   }
+  /* 恢复面板 */
+  .restore-panel-mask{
+    position:fixed;inset:0;z-index:2000;display:none;
+    background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+    align-items:flex-end;justify-content:center;
+  }
+  .restore-panel-mask.show{display:flex;}
+  .restore-panel{
+    width:100%;max-width:480px;background:#fff;border-radius:16px 16px 0 0;
+    max-height:70vh;display:flex;flex-direction:column;
+    box-shadow:0 -4px 24px rgba(0,0,0,.15);
+  }
+  .restore-panel-header{
+    padding:18px 20px 12px;border-bottom:1px solid #f0f0f0;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .restore-panel-title{font-size:16px;font-weight:600;color:#1f2937;}
+  .restore-panel-sub{font-size:12px;color:#9ca3af;margin-top:2px;}
+  .restore-panel-close{
+    background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer;padding:4px 8px;
+  }
+  .restore-panel-list{flex:1;overflow-y:auto;padding:12px 16px;}
+  .restore-panel-empty{
+    text-align:center;padding:40px 20px;color:#9ca3af;font-size:13px;
+  }
+  .restore-item{
+    display:flex;align-items:center;padding:12px 14px;
+    background:#f9fafb;border-radius:10px;margin-bottom:8px;gap:12px;
+  }
+  .restore-item-icon{
+    width:36px;height:36px;border-radius:8px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:600;font-size:14px;
+  }
+  .restore-item-info{flex:1;min-width:0;}
+  .restore-item-name{font-size:14px;font-weight:500;color:#1f2937;}
+  .restore-item-desc{font-size:12px;color:#9ca3af;margin-top:2px;}
+  .restore-item-actions{display:flex;gap:8px;flex-shrink:0;}
+  .restore-btn{
+    padding:6px 12px;border-radius:6px;border:none;font-size:12px;cursor:pointer;
+    font-weight:500;transition:all .15s;
+  }
+  .restore-btn-primary{background:#1890FF;color:#fff;}
+  .restore-btn-primary:hover{background:#40A9FF;}
+  .restore-btn-danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+  .restore-btn-danger:hover{background:#fee2e2;}
+  .restore-panel-footer{
+    padding:12px 20px;border-top:1px solid #f0f0f0;
+    display:flex;gap:10px;
+  }
+  .restore-panel-footer .restore-btn{flex:1;padding:10px;font-size:13px;border-radius:8px;}
+  @media(max-width:640px){
+    .restore-panel{max-height:80vh;}
+    .restore-item{padding:10px 12px;gap:10px;}
+    .restore-item-icon{width:32px;height:32px;font-size:12px;}
+    .restore-btn{padding:5px 10px;font-size:11px;}
+  }
   /* 自定义软件打卡全屏弹窗 */
   .custom-sw-modal{
     position:fixed;inset:0;z-index:3000;display:none;background:var(--bg);
@@ -224,7 +282,7 @@
   .custom-sw-modal-close:hover{background:rgba(255,255,255,.3);}
   .custom-sw-modal iframe{width:100%;height:calc(100vh - 52px);border:none;}
   @media(max-width:640px){
-    .top-title{font-size:16px;}
+    .top-title{font-size:18px;}
     .home-view{padding:14px 12px 24px;}
     .software-grid{grid-template-columns:1fr;gap:12px;}
     .sw-card{padding:16px;}
@@ -814,7 +872,7 @@
 <div class="top-bar">
   <div class="top-bar-left">
     <button class="back-btn" id="backBtn" onclick="goBack()" aria-label="返回">←</button>
-    <div class="top-title"><span class="logo"><br></span><span id="topTitle"><br></span></div>
+    <div class="top-title"><span id="topTitle"><br></span></div>
   </div>
 </div>
 
@@ -830,7 +888,7 @@
         • 点击「添加新软件」可创建新的打卡计划<br>
         • 底部导航栏可切换不同功能页面
       </div>
-      <div class="section-title">我的软件学习</div>
+      <div class="section-title">我的学习</div>
       <div class="software-grid" id="softwareGrid"></div>
     </div>
   </div>
@@ -1092,9 +1150,27 @@
 <div class="toast" id="toast"></div>
 
 <!-- 恢复已删除模块 悬浮按钮 -->
-<div class="restore-fab" id="restoreFab" style="display:none;" onclick="kpRestoreAllHidden()" title="恢复已删除的模块">
+<div class="restore-fab" id="restoreFab" style="display:none;" onclick="openRestorePanel()" title="恢复或彻底删除已隐藏的模块">
   <span class="restore-fab-icon">↩</span>
   <span class="restore-fab-label" id="restoreFabLabel">恢复</span>
+</div>
+
+<!-- 恢复面板 -->
+<div class="restore-panel-mask" id="restorePanelMask" onclick="closeRestorePanel(event)">
+  <div class="restore-panel" onclick="event.stopPropagation()">
+    <div class="restore-panel-header">
+      <div>
+        <div class="restore-panel-title">📦 已隐藏的模块</div>
+        <div class="restore-panel-sub">选择恢复或彻底删除，彻底删除后将不再出现在此列表</div>
+      </div>
+      <button class="restore-panel-close" onclick="closeRestorePanel()">×</button>
+    </div>
+    <div class="restore-panel-list" id="restorePanelList"></div>
+    <div class="restore-panel-footer">
+      <button class="restore-btn restore-btn-danger" onclick="kpPermanentDeleteAll()">彻底删除全部</button>
+      <button class="restore-btn restore-btn-primary" onclick="kpRestoreAllHidden()">全部恢复</button>
+    </div>
+  </div>
 </div>
 
 <!-- 自定义软件打卡全屏弹窗（与UG打卡视图区分） -->
@@ -1180,14 +1256,17 @@ function loadSoftware(){
   if(!list){list = defaultSoftware;localStorage.setItem("checkin_software_list", JSON.stringify(list));}
   // 已隐藏的内置模块（用户主动删除的），不再自动恢复
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
   defaultSoftware.forEach(d=>{
     if(hidden.indexOf(d.id) >= 0) return; // 被删除的内置项不恢复
+    if(permanentlyDeleted.indexOf(d.id) >= 0) return; // 被彻底删除的内置项也不恢复
     const idx = list.findIndex(s=>s.id===d.id);
     if(idx >= 0){list[idx].color=d.color;list[idx].name=d.name;list[idx].desc=d.desc;}
     else{list.push(d);}
   });
-  // 过滤掉已被隐藏的内置项（防止残留）
-  list = list.filter(s=>hidden.indexOf(s.id) < 0);
+  // 过滤掉已被隐藏/彻底删除的内置项（防止残留）
+  const allHidden = [...hidden, ...permanentlyDeleted];
+  list = list.filter(s=>allHidden.indexOf(s.id) < 0);
   return list;
 }
 function saveSoftware(list){localStorage.setItem("checkin_software_list", JSON.stringify(list));}
@@ -2384,45 +2463,145 @@ function kpRestoreSoftware(id){
   const newHidden = hidden.filter(h=>h!==id);
   localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
   const sw = defaultSoftware.find(d=>d.id===id);
+  const name = sw?sw.name:id;
   // 清理旧数据残留
   localStorage.removeItem("checkin_"+id);
   localStorage.removeItem("checkin_"+id+"_days");
   localStorage.removeItem("checkin_"+id+"_content");
-  showToast(`✓ 已恢复「${sw?sw.name:id}」`);
+  showToast(`✓ 已恢复「${name}」`);
+  // 刷新面板内容
+  openRestorePanel();
   if(typeof renderList === 'function') renderList();
   kpRenderSoftwareList();
 }
 
 // 恢复所有已删除的内置模块
 function kpRestoreAllHidden(){
-  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
-  if(!hidden.length){ showToast("没有需要恢复的模块"); return; }
-  hidden.forEach(id=>{
+  const ids = getVisibleHidden();
+  if(!ids.length){ showToast("没有需要恢复的模块"); closeRestorePanel(); return; }
+  ids.forEach(id=>{
     localStorage.removeItem("checkin_"+id);
     localStorage.removeItem("checkin_"+id+"_days");
     localStorage.removeItem("checkin_"+id+"_content");
   });
-  localStorage.setItem("checkin_hidden_builtin", "[]");
-  showToast(`✓ 已恢复 ${hidden.length} 个模块`);
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const newHidden = hidden.filter(id => ids.indexOf(id) < 0);
+  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  showToast(`✓ 已恢复 ${ids.length} 个模块`);
+  closeRestorePanel();
   renderList();
   kpRenderSoftwareList();
   updateRestoreFloatingBtn();
 }
 
-// 更新恢复悬浮按钮的显示和文案
+// 更新恢复悬浮按钮的显示和文案（过滤掉彻底删除的项）
 function updateRestoreFloatingBtn(){
   const fab = document.getElementById("restoreFab");
   if(!fab) return;
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
-  const hiddenBuiltins = defaultSoftware.filter(d=>hidden.indexOf(d.id) >= 0);
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  const visibleHidden = hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
+  const hiddenBuiltins = defaultSoftware.filter(d=>visibleHidden.indexOf(d.id) >= 0);
   if(hiddenBuiltins.length > 0){
     fab.style.display = "flex";
     const label = document.getElementById("restoreFabLabel");
     if(label) label.textContent = `恢复${hiddenBuiltins.length}个`;
-    fab.title = `恢复已删除的模块：${hiddenBuiltins.map(d=>d.name).join('、')}`;
+    fab.title = `已隐藏的模块：${hiddenBuiltins.map(d=>d.name).join('、')}（点击查看）`;
   } else {
     fab.style.display = "none";
   }
+}
+
+// 获取当前可见的隐藏模块（排除已彻底删除的）
+function getVisibleHidden(){
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  return hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
+}
+
+// 打开恢复面板
+function openRestorePanel(){
+  const ids = getVisibleHidden();
+  const list = document.getElementById("restorePanelList");
+  if(ids.length === 0){
+    list.innerHTML = '<div class="restore-panel-empty">暂无已隐藏的模块</div>';
+  } else {
+    list.innerHTML = ids.map(id=>{
+      const sw = defaultSoftware.find(d=>d.id===id);
+      if(!sw) return '';
+      const letter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+      return `
+        <div class="restore-item">
+          <div class="restore-item-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${letter}</div>
+          <div class="restore-item-info">
+            <div class="restore-item-name">${sw.name}</div>
+            <div class="restore-item-desc">${sw.desc||''}</div>
+          </div>
+          <div class="restore-item-actions">
+            <button class="restore-btn restore-btn-danger" onclick="kpPermanentDelete('${sw.id}')">彻底删除</button>
+            <button class="restore-btn restore-btn-primary" onclick="kpRestoreSoftware('${sw.id}')">恢复</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  document.getElementById("restorePanelMask").classList.add("show");
+}
+
+// 关闭恢复面板
+function closeRestorePanel(e){
+  if(e && e.target.id !== "restorePanelMask") return;
+  document.getElementById("restorePanelMask").classList.remove("show");
+}
+
+// 彻底删除单个模块（从隐藏列表移除，加入永久删除列表，不再显示）
+function kpPermanentDelete(id){
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  if(hidden.indexOf(id) < 0) return;
+  const sw = defaultSoftware.find(d=>d.id===id);
+  const name = sw ? sw.name : id;
+  if(!confirm(`确定要彻底删除「${name}」吗？\n彻底删除后该模块将不会再出现在恢复列表中。`)) return;
+  const newHidden = hidden.filter(h=>h!==id);
+  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  if(permanentlyDeleted.indexOf(id) < 0){
+    permanentlyDeleted.push(id);
+    localStorage.setItem("checkin_permanently_deleted", JSON.stringify(permanentlyDeleted));
+  }
+  // 清理打卡数据
+  localStorage.removeItem("checkin_"+id);
+  localStorage.removeItem("checkin_"+id+"_days");
+  localStorage.removeItem("checkin_"+id+"_content");
+  showToast(`🗑 已彻底删除「${name}」`);
+  // 刷新面板和按钮
+  openRestorePanel();
+  if(typeof renderList === 'function') renderList();
+  kpRenderSoftwareList();
+  updateRestoreFloatingBtn();
+}
+
+// 彻底删除全部已隐藏模块
+function kpPermanentDeleteAll(){
+  const ids = getVisibleHidden();
+  if(!ids.length){ showToast("没有需要彻底删除的模块"); return; }
+  if(!confirm(`确定要彻底删除全部 ${ids.length} 个模块吗？\n彻底删除后这些模块将不会再出现在恢复列表中。`)) return;
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  const newPermanent = [...permanentlyDeleted];
+  ids.forEach(id=>{
+    if(newPermanent.indexOf(id) < 0) newPermanent.push(id);
+    localStorage.removeItem("checkin_"+id);
+    localStorage.removeItem("checkin_"+id+"_days");
+    localStorage.removeItem("checkin_"+id+"_content");
+  });
+  const newHidden = hidden.filter(id => ids.indexOf(id) < 0);
+  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  localStorage.setItem("checkin_permanently_deleted", JSON.stringify(newPermanent));
+  showToast(`🗑 已彻底删除 ${ids.length} 个模块`);
+  closeRestorePanel();
+  if(typeof renderList === 'function') renderList();
+  kpRenderSoftwareList();
+  updateRestoreFloatingBtn();
 }
 
 // 显示软件的知识点详情
