@@ -30,15 +30,17 @@
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 2px 8px rgba(0,0,0,.3);
     position:sticky;top:0;z-index:100;
+    position:relative;
   }
-  .top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;justify-content:center;position:relative;}
+  .top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;justify-content:center;}
   .back-btn{
     background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
     color:#fff;width:32px;height:32px;border-radius:8px;
     display:none;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;flex-shrink:0;transition:background .2s;
-    position:absolute;left:0;
+    position:absolute;left:18px;top:50%;transform:translateY(-50%);
     padding:0;line-height:1;
+    margin-top:calc(env(safe-area-inset-top) / 2);
   }
   .back-btn:hover{background:rgba(255,255,255,.35);}
   .back-btn.show{display:flex;}
@@ -189,7 +191,7 @@
   .toast.show{transform:translateX(-50%) translateY(0);}
   /* 恢复已删除模块 悬浮按钮 */
   .restore-fab{
-    position:fixed;right:16px;bottom:72px;z-index:1500;
+    position:fixed;right:16px;bottom:72px;z-index:9999;
     background:linear-gradient(135deg,#f59e0b,#d97706);
     color:#fff;border-radius:20px;
     padding:8px 14px;display:flex;align-items:center;gap:6px;
@@ -317,6 +319,11 @@
     box-shadow:0 2px 12px rgba(0,0,0,.4);
   }
   .ug-app .header-inner{max-width:1200px;margin:0 auto;}
+  .ug-app .back-link{
+    color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;cursor:pointer;
+    display:inline-block;margin-bottom:10px;
+  }
+  .ug-app .back-link:hover{color:#fff;}
   .ug-app header h1{
     font-size:26px;font-weight:600;margin-bottom:6px;
     display:flex;align-items:center;gap:10px;
@@ -898,6 +905,7 @@
     <div class="ug-app">
       <header>
         <div class="header-inner">
+          <a class="back-link" onclick="switchView('home')">← 返回打卡中心</a>
           <h1><span class="logo">UG NX 12.0</span> 自学打卡日历 · 10天冲刺</h1>
           <div class="subtitle">基于 B站《UG12.0从入门到精通 25节课》教程，每天2-3节 + 笔记打卡，10天学完全部25节</div>
           <div class="progress-wrap">
@@ -936,7 +944,7 @@
       <div id="kpListView">
         <div class="kp-header">
           <div class="kp-header-inner">
-            <h1>📚 知识点汇总中心</h1>
+            <h1>知识点汇总中心</h1>
             <div class="sub">选择软件，查看完整知识点汇总 · 支持所有打卡软件</div>
           </div>
         </div>
@@ -950,7 +958,7 @@
       <div id="kpDetailView" style="display:none;">
         <div class="kp-header">
           <div class="kp-header-inner">
-            <h1 id="kpDetailTitle">📚 知识点汇总</h1>
+            <h1 id="kpDetailTitle">知识点汇总</h1>
             <div class="sub" id="kpDetailDesc"></div>
             <div class="stats" id="kpDetailStats"></div>
           </div>
@@ -1170,6 +1178,10 @@
       <button class="restore-btn restore-btn-danger" onclick="kpPermanentDeleteAll()">彻底删除全部</button>
       <button class="restore-btn restore-btn-primary" onclick="kpRestoreAllHidden()">全部恢复</button>
     </div>
+    <div class="restore-panel-footer" style="padding-top:0;border-top:none;flex-direction:column;">
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;text-align:center;">误彻底删除了内置模块？点击下方按钮重置</div>
+      <button class="restore-btn" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;width:100%;padding:8px;font-size:12px;border-radius:8px;" onclick="kpResetBuiltinModules()">🔄 重置所有默认内置模块到初始状态</button>
+    </div>
   </div>
 </div>
 
@@ -1244,6 +1256,8 @@ function dlSwitchTab(e,platform){
   e.target.classList.add('active');
   document.getElementById('dl-'+platform).classList.add('active');
 }
+
+
 
 // 返回上一级（返回首页）
 function goBack(){
@@ -1375,21 +1389,37 @@ function deleteSoftware(id){
   const isBuiltin = defaultSoftware.some(d=>d.id===id);
   const msg = isBuiltin
     ? "确定删除这个软件模块吗？将从列表中隐藏，并清除其打卡记录。"
-    : "确定删除这个软件的打卡计划吗？所有打卡记录将丢失！";
+    : "确定删除这个软件的打卡计划吗？可通过右下角「恢复」按钮找回打卡记录。";
   if(!confirm(msg)) return;
   // 内置模块加入隐藏列表，防止刷新后被 defaultSoftware 重新恢复
   if(isBuiltin){
     const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
     if(hidden.indexOf(id) < 0) hidden.push(id);
     localStorage.setItem("checkin_hidden_builtin", JSON.stringify(hidden));
+  } else {
+    // 自定义软件：把软件元信息和打卡数据完整备份到 checkin_hidden_custom，用于恢复
+    const customRecycleBin = JSON.parse(localStorage.getItem("checkin_hidden_custom") || "{}");
+    const currentList = loadSoftware();
+    const softInfo = currentList.find(s=>s.id===id);
+    if(softInfo){
+      customRecycleBin[id] = {
+        ...softInfo,
+        deletedAt: Date.now(),
+        checkin: localStorage.getItem("checkin_"+id),
+        days: localStorage.getItem("checkin_"+id+"_days"),
+        content: localStorage.getItem("checkin_"+id+"_content"),
+      };
+      localStorage.setItem("checkin_hidden_custom", JSON.stringify(customRecycleBin));
+    }
   }
   const list = loadSoftware().filter(s=>s.id!==id);
   saveSoftware(list);
   localStorage.removeItem("checkin_"+id);
   localStorage.removeItem("checkin_"+id+"_days");
   localStorage.removeItem("checkin_"+id+"_content");
-  showToast("已删除");
+  showToast("已移到回收站，可通过右下角「恢复」按钮找回");
   renderList();
+  updateRestoreFloatingBtn();
 }
 
 function showToast(msg){
@@ -2457,36 +2487,65 @@ function kpRenderSoftwareList(){
   updateRestoreFloatingBtn();
 }
 
-// 恢复已删除的内置模块（单个）
+// 恢复模块（单个，内置 + 自定义通用）
 function kpRestoreSoftware(id){
-  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
-  const newHidden = hidden.filter(h=>h!==id);
-  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
-  const sw = defaultSoftware.find(d=>d.id===id);
+  const sw = getModuleMetaById(id);
   const name = sw?sw.name:id;
-  // 清理旧数据残留
-  localStorage.removeItem("checkin_"+id);
-  localStorage.removeItem("checkin_"+id+"_days");
-  localStorage.removeItem("checkin_"+id+"_content");
+  const isBuiltin = defaultSoftware.some(d=>d.id===id);
+  if(isBuiltin){
+    // 内置模块：从隐藏列表移除即可，defaultSoftware 会自动恢复
+    const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+    const newHidden = hidden.filter(h=>h!==id);
+    localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+    // 从永久删除列表也移除（防止再次被误过滤）
+    const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+    localStorage.setItem("checkin_permanently_deleted", JSON.stringify(permanentlyDeleted.filter(x=>x!==id)));
+  } else {
+    // 自定义软件：从 checkin_hidden_custom 读取备份，写回软件列表 + 恢复打卡数据
+    const customRecycleBin = JSON.parse(localStorage.getItem("checkin_hidden_custom") || "{}");
+    const backup = customRecycleBin[id];
+    if(backup){
+      // 1. 写回软件列表（防止 id 重复）
+      const currentList = loadSoftware();
+      if(!currentList.some(s=>s.id===id)){
+        const softToSave = {...backup};
+        // 去掉备份里的非软件字段（checkin/days/content/deletedAt）
+        delete softToSave.checkin;
+        delete softToSave.days;
+        delete softToSave.content;
+        delete softToSave.deletedAt;
+        delete softToSave.isCustom;
+        currentList.push(softToSave);
+        saveSoftware(currentList);
+      }
+      // 2. 恢复打卡数据（删除前的真实数据）
+      if(backup.checkin !== null && backup.checkin !== undefined) localStorage.setItem("checkin_"+id, backup.checkin);
+      if(backup.days !== null && backup.days !== undefined) localStorage.setItem("checkin_"+id+"_days", backup.days);
+      if(backup.content !== null && backup.content !== undefined) localStorage.setItem("checkin_"+id+"_content", backup.content);
+      // 3. 从回收站移除
+      delete customRecycleBin[id];
+      localStorage.setItem("checkin_hidden_custom", JSON.stringify(customRecycleBin));
+      // 4. 从永久删除列表移除
+      const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+      localStorage.setItem("checkin_permanently_deleted", JSON.stringify(permanentlyDeleted.filter(x=>x!==id)));
+    }
+  }
   showToast(`✓ 已恢复「${name}」`);
   // 刷新面板内容
   openRestorePanel();
   if(typeof renderList === 'function') renderList();
   kpRenderSoftwareList();
+  updateRestoreFloatingBtn();
 }
 
-// 恢复所有已删除的内置模块
+// 恢复所有已删除的模块（内置 + 自定义）
 function kpRestoreAllHidden(){
   const ids = getVisibleHidden();
   if(!ids.length){ showToast("没有需要恢复的模块"); closeRestorePanel(); return; }
   ids.forEach(id=>{
-    localStorage.removeItem("checkin_"+id);
-    localStorage.removeItem("checkin_"+id+"_days");
-    localStorage.removeItem("checkin_"+id+"_content");
+    // 直接调用单个恢复函数，统一逻辑避免重复
+    kpRestoreSoftware(id);
   });
-  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
-  const newHidden = hidden.filter(id => ids.indexOf(id) < 0);
-  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
   showToast(`✓ 已恢复 ${ids.length} 个模块`);
   closeRestorePanel();
   renderList();
@@ -2494,47 +2553,92 @@ function kpRestoreAllHidden(){
   updateRestoreFloatingBtn();
 }
 
-// 更新恢复悬浮按钮的显示和文案（过滤掉彻底删除的项）
+// 辅助：获取自定义软件回收站的全部信息（含过滤永久删除的）
+function getCustomRecycleBinWithMeta(){
+  const customRecycleBin = JSON.parse(localStorage.getItem("checkin_hidden_custom") || "{}");
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  const result = [];
+  Object.keys(customRecycleBin).forEach(id => {
+    if(permanentlyDeleted.indexOf(id) < 0){
+      result.push({id, ...customRecycleBin[id], isCustom: true});
+    }
+  });
+  return result;
+}
+
+// 更新恢复悬浮按钮的显示和文案（统计内置模块 + 自定义软件）
 function updateRestoreFloatingBtn(){
   const fab = document.getElementById("restoreFab");
   if(!fab) return;
+  // 1. 内置模块（已隐藏且未永久删除）
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
   const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
-  const visibleHidden = hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
-  const hiddenBuiltins = defaultSoftware.filter(d=>visibleHidden.indexOf(d.id) >= 0);
-  if(hiddenBuiltins.length > 0){
+  const visibleBuiltinIds = hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
+  const hiddenBuiltins = defaultSoftware.filter(d=>visibleBuiltinIds.indexOf(d.id) >= 0);
+  // 2. 自定义软件（在回收站且未永久删除）
+  const customHiddenList = getCustomRecycleBinWithMeta();
+  // 3. 如果有永久删除的内置模块（回收站空但用户可能需要重置），也强制显示按钮
+  const hasPermanentlyDeletedBuiltin = permanentlyDeleted.some(id => defaultSoftware.some(d=>d.id===id));
+  const totalCount = hiddenBuiltins.length + customHiddenList.length;
+  if(totalCount > 0 || hasPermanentlyDeletedBuiltin){
     fab.style.display = "flex";
     const label = document.getElementById("restoreFabLabel");
-    if(label) label.textContent = `恢复${hiddenBuiltins.length}个`;
-    fab.title = `已隐藏的模块：${hiddenBuiltins.map(d=>d.name).join('、')}（点击查看）`;
+    if(totalCount > 0){
+      if(label) label.textContent = `恢复${totalCount}个`;
+    } else {
+      if(label) label.textContent = "重置";
+    }
+    const names = [
+      ...hiddenBuiltins.map(d=>d.name),
+      ...customHiddenList.map(s=>s.name),
+    ];
+    if(hasPermanentlyDeletedBuiltin){
+      // 找出永久删除的内置模块名，附加到 title 提示
+      const pdBuiltins = defaultSoftware.filter(d=>permanentlyDeleted.indexOf(d.id)>=0);
+      names.push(...pdBuiltins.map(n=>`${n.name}（已彻底删除）`));
+    }
+    fab.title = `已移到回收站的模块：${names.join('、')}（点击查看）`;
   } else {
     fab.style.display = "none";
   }
 }
 
-// 获取当前可见的隐藏模块（排除已彻底删除的）
+// 获取当前可见的隐藏模块ID（内置 + 自定义）
 function getVisibleHidden(){
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
   const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
-  return hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
+  const builtinIds = hidden.filter(id => permanentlyDeleted.indexOf(id) < 0);
+  // 加上自定义软件的 id
+  const customIds = getCustomRecycleBinWithMeta().map(s=>s.id);
+  return [...builtinIds, ...customIds];
 }
 
-// 打开恢复面板
+// 按 ID 获取任意模块的完整元信息（内置 + 自定义）
+function getModuleMetaById(id){
+  const builtin = defaultSoftware.find(d=>d.id===id);
+  if(builtin) return {...builtin, isCustom: false};
+  const custom = getCustomRecycleBinWithMeta().find(s=>s.id===id);
+  if(custom) return custom;
+  return null;
+}
+
+// 打开恢复面板（内置模块 + 自定义软件 合并展示）
 function openRestorePanel(){
   const ids = getVisibleHidden();
   const list = document.getElementById("restorePanelList");
   if(ids.length === 0){
-    list.innerHTML = '<div class="restore-panel-empty">暂无已隐藏的模块</div>';
+    list.innerHTML = '<div class="restore-panel-empty">暂无已删除的模块</div>';
   } else {
     list.innerHTML = ids.map(id=>{
-      const sw = defaultSoftware.find(d=>d.id===id);
+      const sw = getModuleMetaById(id);
       if(!sw) return '';
       const letter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+      const tagText = sw.isCustom ? '（自定义）' : '';
       return `
         <div class="restore-item">
           <div class="restore-item-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${letter}</div>
           <div class="restore-item-info">
-            <div class="restore-item-name">${sw.name}</div>
+            <div class="restore-item-name">${sw.name}${tagText}</div>
             <div class="restore-item-desc">${sw.desc||''}</div>
           </div>
           <div class="restore-item-actions">
@@ -2554,21 +2658,28 @@ function closeRestorePanel(e){
   document.getElementById("restorePanelMask").classList.remove("show");
 }
 
-// 彻底删除单个模块（从隐藏列表移除，加入永久删除列表，不再显示）
+// 彻底删除单个模块（内置 + 自定义通用）
 function kpPermanentDelete(id){
-  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
-  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
-  if(hidden.indexOf(id) < 0) return;
-  const sw = defaultSoftware.find(d=>d.id===id);
+  const sw = getModuleMetaById(id);
   const name = sw ? sw.name : id;
+  const isBuiltin = defaultSoftware.some(d=>d.id===id);
   if(!confirm(`确定要彻底删除「${name}」吗？\n彻底删除后该模块将不会再出现在恢复列表中。`)) return;
-  const newHidden = hidden.filter(h=>h!==id);
-  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
   if(permanentlyDeleted.indexOf(id) < 0){
     permanentlyDeleted.push(id);
     localStorage.setItem("checkin_permanently_deleted", JSON.stringify(permanentlyDeleted));
   }
-  // 清理打卡数据
+  if(isBuiltin){
+    // 内置模块：从内置隐藏列表移除
+    const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+    localStorage.setItem("checkin_hidden_builtin", JSON.stringify(hidden.filter(h=>h!==id)));
+  } else {
+    // 自定义软件：从回收站和存储彻底清除
+    const customRecycleBin = JSON.parse(localStorage.getItem("checkin_hidden_custom") || "{}");
+    delete customRecycleBin[id];
+    localStorage.setItem("checkin_hidden_custom", JSON.stringify(customRecycleBin));
+  }
+  // 清理打卡数据（不管内置/自定义都清掉）
   localStorage.removeItem("checkin_"+id);
   localStorage.removeItem("checkin_"+id+"_days");
   localStorage.removeItem("checkin_"+id+"_content");
@@ -2580,24 +2691,49 @@ function kpPermanentDelete(id){
   updateRestoreFloatingBtn();
 }
 
-// 彻底删除全部已隐藏模块
+// 彻底删除全部已隐藏模块（内置 + 自定义通用）
 function kpPermanentDeleteAll(){
   const ids = getVisibleHidden();
   if(!ids.length){ showToast("没有需要彻底删除的模块"); return; }
   if(!confirm(`确定要彻底删除全部 ${ids.length} 个模块吗？\n彻底删除后这些模块将不会再出现在恢复列表中。`)) return;
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
   const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  const customRecycleBin = JSON.parse(localStorage.getItem("checkin_hidden_custom") || "{}");
   const newPermanent = [...permanentlyDeleted];
+  const builtinIds = new Set(defaultSoftware.map(d=>d.id));
   ids.forEach(id=>{
     if(newPermanent.indexOf(id) < 0) newPermanent.push(id);
+    if(!builtinIds.has(id)){
+      // 自定义软件：从回收站里删除
+      delete customRecycleBin[id];
+    }
     localStorage.removeItem("checkin_"+id);
     localStorage.removeItem("checkin_"+id+"_days");
     localStorage.removeItem("checkin_"+id+"_content");
   });
   const newHidden = hidden.filter(id => ids.indexOf(id) < 0);
   localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  localStorage.setItem("checkin_hidden_custom", JSON.stringify(customRecycleBin));
   localStorage.setItem("checkin_permanently_deleted", JSON.stringify(newPermanent));
   showToast(`🗑 已彻底删除 ${ids.length} 个模块`);
+  closeRestorePanel();
+  if(typeof renderList === 'function') renderList();
+  kpRenderSoftwareList();
+  updateRestoreFloatingBtn();
+}
+
+// 一键重置所有默认内置模块（清空永久删除名单 + 清空内置隐藏名单），用于误彻底删除后的恢复
+function kpResetBuiltinModules(){
+  const builtinNames = defaultSoftware.map(d=>d.name).join('、');
+  if(!confirm(`确定要重置所有默认内置模块吗？\n\n将恢复以下模块到初始状态：\n${builtinNames}\n\n（自定义软件和打卡记录不会受影响）`)) return;
+  // 1. 清空内置隐藏列表
+  localStorage.removeItem("checkin_hidden_builtin");
+  // 2. 从永久删除名单中，只移除内置模块的 id（自定义软件的永久删除保持不变）
+  const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
+  const builtinIds = new Set(defaultSoftware.map(d=>d.id));
+  const newPermanent = permanentlyDeleted.filter(id => !builtinIds.has(id));
+  localStorage.setItem("checkin_permanently_deleted", JSON.stringify(newPermanent));
+  showToast(`✓ 已重置所有内置模块：${builtinNames}`);
   closeRestorePanel();
   if(typeof renderList === 'function') renderList();
   kpRenderSoftwareList();
@@ -2614,7 +2750,7 @@ function kpShowKnowledge(softwareId){
   // 隐藏列表，显示详情
   document.getElementById("kpListView").style.display = "none";
   document.getElementById("kpDetailView").style.display = "";
-  document.getElementById("kpDetailTitle").textContent = `📚 ${sw.name} · 知识点汇总`;
+  document.getElementById("kpDetailTitle").textContent = `${sw.name} · 知识点汇总`;
   document.getElementById("kpDetailDesc").textContent = `${sw.desc||''} · ${sw.days||10}天学习计划`;
 
   // 获取该软件的知识点数据
