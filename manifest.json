@@ -1,8 +1,8 @@
 {
-  "name": "UG NX 12.0 自学打卡日历",
-  "short_name": "UG打卡",
-  "description": "基于B站《UG12.0从入门到精通25节课》教程的10天自学打卡页面",
-  "start_url": "./UG_NX12_打卡日历.html",
+  "name": "学习打卡中心",
+  "short_name": "学习打卡",
+  "description": "多软件自学打卡系统，支持 UG NX 12.0、DJI Action 4、自定义软件的每日学习打卡",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1419",
@@ -12,13 +12,13 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230078D4'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='240' font-weight='bold' text-anchor='middle' fill='white'%3EUG%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230078D4'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='240' font-weight='bold' text-anchor='middle' fill='white'%3E学%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%230078D4'/%3E%3Ctext x='96' y='128' font-family='Arial,sans-serif' font-size='90' font-weight='bold' text-anchor='middle' fill='white'%3EUG%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%230078D4'/%3E%3Ctext x='96' y='128' font-family='Arial,sans-serif' font-size='90' font-weight='bold' text-anchor='middle' fill='white'%3E学%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"

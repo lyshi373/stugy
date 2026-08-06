@@ -1,7 +1,7 @@
 // UG NX 12.0 打卡日历 - Service Worker
 // 实现离线访问和APP化
 
-const CACHE_NAME = "ug-nx12-checkin-v5";
+const CACHE_NAME = "study-checkin-center-v6";
 const CACHE_FILES = [
   "./",
   "./index.html",
@@ -70,7 +70,7 @@ self.addEventListener("fetch", (event) => {
         .catch(() => {
           // 网络失败：如果是导航请求，返回主页
           if (event.request.mode === "navigate") {
-            return caches.match("./UG_NX12_打卡日历.html");
+            return caches.match("./index.html");
           }
         });
     })

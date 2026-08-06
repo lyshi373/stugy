@@ -377,6 +377,7 @@
         <button class="mode-btn active" id="modeLearn" onclick="setMode('learn')">📖 学习</button>
         <button class="mode-btn" id="modeEdit" onclick="setMode('edit')">✏️ 编辑</button>
       </div>
+      <button class="export-btn" onclick="changeTotalDays()">⚙ 修改天数</button>
       <button class="export-btn" onclick="exportAllWord()">导出全部笔记</button>
       <button class="export-btn" onclick="resetProgress()" style="border-color:var(--danger);color:var(--danger);">重置</button>
     </div>
@@ -404,7 +405,43 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 修改学习天数弹窗（不依赖 prompt，兼容手机端） -->
+<div class="modal-mask" id="daysModal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <h2>修改学习天数</h2>
+      <button class="close-btn" onclick="closeDaysModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <p id="daysModalInfo" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6;"></p>
+      <input type="number" id="daysInput" min="1" max="365" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;box-sizing:border-box;">
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="export-btn" onclick="closeDaysModal()" style="flex:1;text-align:center;">取消</button>
+        <button class="checkin-btn" onclick="applyDaysChange()" style="flex:1;">确认修改</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// 清理遗留 Service Worker 与缓存
+// 旧 SW 缓存了旧版 template.html，导致修改天数/自动总结等新功能不生效
+// 主动卸载所有遗留 SW 并清空缓存，刷新一次后即可加载最新代码
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    if(!regs.length) return;
+    regs.forEach(function(r){ r.unregister(); });
+    if(window.caches){
+      caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+    }
+    if(!sessionStorage.getItem('sw_cleaned_tpl')){
+      sessionStorage.setItem('sw_cleaned_tpl','1');
+      location.reload();
+    }
+  });
+})();
+
 // ============ 配置 ============
 const urlParams = new URLSearchParams(location.search);
 const SOFTWARE_ID = urlParams.get("software") || "custom";
@@ -417,6 +454,9 @@ function getSoftwareInfo(){
   // 内置软件默认信息
   const builtinDefaults = {
     "dji-action4":{id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,type:"template"},
+    "solidworks":{id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,type:"template"},
+    "excel":{id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,type:"template"},
+    "swimming":{id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,type:"template"},
   };
   if(builtinDefaults[SOFTWARE_ID]) return builtinDefaults[SOFTWARE_ID];
   // 默认
@@ -777,6 +817,121 @@ const EXCEL_PLAN = {
   ]},
 };
 
+// ============ 游泳 Swimming 十天预填充内容 ============
+const SWIMMING_PLAN = {
+  1:{title:"水性熟悉与憋气训练",goal:"掌握水感、放松心态，完成首次憋气5-10秒，掌握站立与漂浮。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：游泳入门 水性熟悉 / 憋气训练 / 新手学游泳第一节课"},
+  ],knowledge:[
+    "下水前热身：颈部、肩部、髋关节、膝关节各环绕10次，避免抽筋",
+    "池边适应：手扶池边，脚触池底，感受水的浮力与温度",
+    "憋气练习：深吸气后闭口，缓慢入水到下颌，坚持5-10秒，吐气后站起",
+    "站立技巧：双腿屈膝收向胸口，双脚下踩 + 双手下压，顺势抬头吸气",
+    "抱膝漂浮：吸一口气抱成团，感受身体自然漂浮在水面",
+    "伸展漂浮（水母漂）：双臂前伸，身体放松，让水托住身体",
+    "关键原则：紧张会下沉，放松才能浮；呼吸节奏要稳，先在陆地上练10次深呼吸"
+  ]},
+  2:{title:"打水踢腿与浮板训练",goal:"掌握自由泳打腿基础，配合浮板完成25米连续踢腿。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：自由泳打腿 / 浮板踢腿 / 游泳 腿部训练"},
+  ],knowledge:[
+    "自由泳打腿要点：大腿带动小腿，脚尖绷直（内八字/略外八均可）",
+    "发力方式：从髋部发力，而不是只弯膝盖；每一组打水8-12次一换气",
+    "浮板使用：双手握浮板上沿，双臂伸直，肩膀放松，头部不刻意抬高",
+    "池边扶壁踢腿：单手扶壁，身体水平，打腿连续不中断，每组50秒",
+    "常见错误：只踢小腿、膝盖露水面、身体下坐→抬高臀部、核心收紧",
+    "节奏建议：练习时默念「1-2-3-4」，每4次一组，循序渐进",
+    "25米达标：可以用浮板不中断踢完25米，即可进入下一阶段"
+  ]},
+  3:{title:"换气与蛙泳腿部",goal:"掌握蛙泳腿收-翻-蹬-夹动作，配合基础换气节奏。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：蛙泳腿 教学 / 收翻蹬夹 / 蛙泳换气零基础"},
+  ],knowledge:[
+    "蛙泳腿口诀：收腿慢、翻脚快、蹬夹猛、滑行远",
+    "收腿：脚后跟向臀部收，膝盖自然分开与肩同宽",
+    "翻脚（关键）：脚尖向外勾开，脚掌和小腿内侧对准蹬水方向",
+    "蹬腿：脚跟向后外侧蹬水，形成「画椭圆」轨迹",
+    "夹腿：蹬到最后双腿并拢滑行，保持1-2秒流线型",
+    "换气节奏：抬头吸气 → 低头水中吐泡泡 → 收翻蹬夹 → 滑行",
+    "练习顺序：先扶池边原地练腿，再带浮板练腿，最后结合换气"
+  ]},
+  4:{title:"蛙泳手臂配合",goal:"掌握蛙泳划手动作，与腿部分解配合，能独立游15米。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：蛙泳划手 / 蛙泳手脚配合 / 划手换气"},
+  ],knowledge:[
+    "划手动作：向外划→向下压→向后扒→向内收→向前伸",
+    "划手宽度：双臂分开略比肩宽，手掌对水（像抱一个球）",
+    "划手与换气配合：划手抬头吸气，伸手低头吐气（先划手后抬头）",
+    "整体配合口诀：划手腿不动，伸手再蹬腿，并拢滑一会儿",
+    "常见错误：手脚同时动（像骑自行车）→ 用浮板把动作拆开练",
+    "节奏：划手(1) + 蹬腿(1) + 滑行(2拍)，慢节奏更省力",
+    "训练目标：独立完成15米蛙泳，不扶边不踩脚"
+  ]},
+  5:{title:"自由泳手臂划水",goal:"掌握自由泳抱水-拉水-推水-出水-移臂-入水完整动作。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：自由泳划水 / 抱水 高肘 / 自由泳单臂分解"},
+  ],knowledge:[
+    "入水：手指先入水，位置在肩膀延长线偏前",
+    "抱水（高肘）：屈肘下压，像抱一个水桶，手+前臂对水",
+    "拉水：手划向身体正下方（S型轨迹），大臂保持内旋",
+    "推水：手推到大腿外侧，完成后立刻出水",
+    "出水：大拇指领先贴大腿外侧提出水面，肘先出水",
+    "移臂：肘保持高位，手沿水面轻松甩回前方",
+    "分解练习：扶板单臂划水 → 双臂交替（3次一换或2次一换）→ 完整节奏"
+  ]},
+  6:{title:"自由泳双边换气",goal:"掌握自由泳转头换气，做到左右两边都能换气，轻松游25米。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：自由泳换气 / 转头换气 / 自由泳双边换气教学"},
+  ],knowledge:[
+    "换气不是抬头：身体绕纵轴轻微转动，嘴露出水面一侧",
+    "换气时机：同侧手推水结束时转头吸气，入水时低头吐气",
+    "半嘴呼吸：嘴一半在水里一半在水上也能吸气，不必抬太高",
+    "吐气持续：水下用鼻+嘴持续吐泡泡，避免转头时还要吐气",
+    "节奏公式：左-右-换气-左-右-换气（每3次划手左右交替换气）",
+    "常见错误：换气抬下巴、身体下沉 → 转头不抬头，打腿不要停",
+    "训练目标：自由泳25米全程换气自如，不憋气、不呛水"
+  ]},
+  7:{title:"仰泳基础",goal:"掌握仰泳漂浮、踢腿与划手，完成25米仰泳。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：仰泳入门 / 仰泳踢腿 / 仰泳划手"},
+  ],knowledge:[
+    "仰泳最重要：肚子顶起来，胸朝上，水面盖住耳朵，眼睛看天花板",
+    "仰泳踢腿：和自由泳一样，大腿带小腿，脚尖绷直，频率略高于自由泳",
+    "漂浮练习：仰卧在水面，双手身体两侧做小船，先学会静态漂浮10秒",
+    "划手动作：手臂直臂从耳朵旁入水，抱水→拉水→推水→出水提臂",
+    "节奏：6次打腿，2次划手，全程核心收紧不塌腰",
+    "常见错误：下巴贴胸口（会下沉）→ 下巴微抬，脑后勺压水",
+    "方向辨别：用眼睛余光看池壁标线、天花板，避免游歪"
+  ]},
+  8:{title:"转身与跳水出发",goal:"掌握前滚翻转身与基础跳水出发，提升连贯游进效率。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：游泳 前滚翻转身 / 跳水出发 教学 / 池边出发"},
+  ],knowledge:[
+    "前滚翻转身：到池壁前2米，深吸气，低头团身做前翻滚，脚蹬壁转身",
+    "转身要点：翻的时候吐气，别抬头；脚蹬壁前身体转成侧卧/仰卧",
+    "蹬壁发力：双脚贴池壁，膝盖约90度，爆发蹬出+水下蝶泳腿6次再出水",
+    "池边出发（不跳水）：双脚贴池壁，双手前伸，身体水平蹬出开始游",
+    "跳水出发基础：双脚前后站池边，屈膝，手前伸，身体像楔子入水",
+    "安全提醒：跳水前确认水深≥2米，不熟悉不要轻易尝试",
+    "训练建议：先在浅水区反复练前滚翻和蹬壁，熟练了再去深水区"
+  ]},
+  9:{title:"耐力与动作巩固",goal:"完成500米总距离，纠正常见错误，形成稳定的技术框架。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：游泳 耐力训练 / 动作纠正 / 自由泳 常见错误"},
+  ],knowledge:[
+    "训练计划：100米蛙泳 + 100米自由泳 + 50米仰泳 + 100米蛙泳 + 150米放松 = 500米",
+    "每100米休息30-60秒，配速稳定不求快",
+    "蛙泳自查：蹬腿后是否滑行？伸手是否同时低头？换气是否先划手？",
+    "自由泳自查：身体是否平直？高肘抱水了吗？换气转头不抬头？",
+    "体能提升：每周至少游3次，每次不少于30分钟",
+    "饮食与补水：游泳前1小时不要吃太饱，游后及时补水补蛋白质",
+    "装备升级：准备合适的泳帽、防雾泳镜、吸水速干毛巾"
+  ]},
+  10:{title:"综合实战与总结",goal:"完成一次1000米长距离综合训练，回顾10天内容并制定长期计划。",videos:[
+    {bv:"",page:1,title:"📌 B站搜索关键词：游泳 长距离训练 / 游泳健身计划 / 自由泳进阶"},
+    {bv:"",page:1,title:"📌 B站搜索关键词：游泳 减脂 / 训练计划 / 蛙泳自由泳混合训练"},
+  ],knowledge:[
+    "1000米训练模板：300米蛙泳热身 → 200米自由泳 → 100米仰泳 → 100米蛙/自交替 → 300米放松",
+    "长距离策略：前50%保持6成力，中间30%稳节奏，后20%轻微加力",
+    "心率建议：保持在最大心率的60-75%（（220-年龄）× 0.6~0.75）",
+    "10天学习总结：水性熟悉 → 蛙泳腿+手 → 自由泳腿+手+换气 → 仰泳 → 转身出发 → 耐力实战",
+    "进阶方向：蝶泳、公开水域、铁人三项、游泳减脂计划、技术精修",
+    "长期训练：每周2-4次，每次30-60分钟，坚持3个月可见明显体能改善",
+    "安全第一：不要独自去公开水域，泳池结伴游；身体不适立即停止"
+  ]},
+};
+
 // ============ 数据管理 ============
 function loadData(){
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -787,6 +942,9 @@ function saveData(data){
 // 预填充数据映射
 const PRESET_PLANS = {
   "dji-action4": DJI_ACTION4_PLAN,
+  "solidworks": SOLIDWORKS_PLAN,
+  "excel": EXCEL_PLAN,
+  "swimming": SWIMMING_PLAN,
 };
 
 // 版本号不匹配时清除旧 localStorage content，让新预填充数据生效
@@ -818,6 +976,99 @@ function loadDayContent(day){
     videos:[],
     knowledge:[]
   };
+}
+
+// 把已有学习内容（不管是内置还是自定义导入）均匀重分配到新天数
+// 数据源：优先从 _content 读（用户实际使用的内容），回退到 PRESET_PLANS
+// 空天（只有默认标题、无视频/知识点）会被跳过，不作为源
+function redistributePlan(newDays){
+  const contentKey = STORAGE_KEY + "_content";
+  const savedContent = JSON.parse(localStorage.getItem(contentKey) || "{}");
+  const preset = PRESET_PLANS[SOFTWARE_ID];
+  
+  // 收集源数据：从 _content 读，回退到 PRESET_PLANS
+  const srcDays = [];
+  const existingDays = Object.keys(savedContent).map(Number).sort((a,b)=>a-b);
+  const maxDay = Math.max(...existingDays, 0);
+  
+  for(let d=1; d<=maxDay; d++){
+    let item = savedContent[d] || savedContent[String(d)];
+    // 如果 _content 里没有这一天，尝试从 PRESET_PLANS 拿
+    if(!item || (!item.title && !item.goal && (!item.videos || !item.videos.length) && (!item.knowledge || !item.knowledge.length))){
+      if(preset && preset[d]) item = preset[d];
+    }
+    if(!item) continue;
+    // 判断是否为空天（只有默认标题，无实质内容）
+    const hasContent = (item.videos && item.videos.length) || (item.knowledge && item.knowledge.length) || item.goal;
+    if(!hasContent) continue;
+    srcDays.push(JSON.parse(JSON.stringify(item)));
+  }
+  
+  // 如果 _content 和 PRESET_PLANS 都没有有效数据
+  if(!srcDays.length) return null;
+  
+  const oldDays = srcDays.length; // 有效源数据的天数
+  if(oldDays === newDays) return null; // 天数没变，无需重分配
+
+  // 拆分：newDays > oldDays
+  const result = {};
+  if(newDays >= oldDays){
+    let newDay = 1;
+    const perOld = newDays / oldDays;
+    srcDays.forEach((src, idx)=>{
+      let count = Math.round(perOld);
+      if(idx === oldDays - 1) count = newDays - (newDay - 1);
+      if(count < 1) count = 1;
+      const kps = src.knowledge || [];
+      const vids = src.videos || [];
+      if(count === 1 || kps.length === 0){
+        result[newDay] = {
+          title: src.title || `第 ${newDay} 天`,
+          goal: src.goal || "",
+          videos: vids,
+          knowledge: kps
+        };
+        newDay++;
+      } else {
+        const kpPer = Math.ceil(kps.length / count);
+        const vidPer = Math.ceil(vids.length / count);
+        for(let i=0; i<count; i++){
+          const kpSlice = kps.slice(i*kpPer, (i+1)*kpPer);
+          const vidSlice = vids.slice(i*vidPer, (i+1)*vidPer);
+          result[newDay] = {
+            title: count > 1 && i > 0 ? `${src.title}（${i+1}/${count}）` : (src.title || `第 ${newDay} 天`),
+            goal: i === 0 ? (src.goal || "") : "",
+            videos: vidSlice,
+            knowledge: kpSlice
+          };
+          newDay++;
+        }
+      }
+    });
+  } else {
+    // 压缩：newDays < oldDays
+    const perNew = oldDays / newDays;
+    for(let nd=1; nd<=newDays; nd++){
+      const startIdx = Math.floor((nd-1) * perNew);
+      let endIdx = Math.floor(nd * perNew);
+      if(nd === newDays) endIdx = oldDays;
+      const merged = {title:[], goal:[], videos:[], knowledge:[]};
+      for(let i=startIdx; i<endIdx; i++){
+        const src = srcDays[i];
+        if(src.title) merged.title.push(src.title);
+        if(src.goal) merged.goal.push(src.goal);
+        if(src.videos) merged.videos = merged.videos.concat(src.videos);
+        if(src.knowledge) merged.knowledge = merged.knowledge.concat(src.knowledge);
+      }
+      result[nd] = {
+        title: merged.title.join(" / ") || `第 ${nd} 天`,
+        goal: merged.goal.join("；"),
+        videos: merged.videos,
+        knowledge: merged.knowledge
+      };
+    }
+  }
+  return result;
 }
 function saveDayContent(day, content){
   const contentKey = STORAGE_KEY + "_content";
@@ -982,6 +1233,30 @@ function renderEditMode(day, content){
   `;
 }
 
+// 自动生成本日总结文字（基于当天学习内容拼接，无需手写）
+// day 参数：无 title 且有 day 时生成 "DAY X 学习总结" 兜底，避免自定义软件无内容时空总结
+function generateSummary(content, day){
+  const parts = [];
+  if(content.title) parts.push("今天学习「" + content.title + "」");
+  if(content.goal){
+    const g = content.goal.replace(/[。.，,；;]+$/,""); // 去掉末尾标点，避免拼接时重叠
+    parts.push("目标是" + g);
+  }
+  if(content.knowledge && content.knowledge.length){
+    parts.push("重点掌握：" + content.knowledge.join("；")); // 不再截断，全部知识点参与总结
+  }
+  if(content.videos && content.videos.length){
+    const titled = content.videos.filter(v=>v && v.title).map(v=>v.title);
+    parts.push("共" + content.videos.length + "个学习视频" + (titled.length ? "：" + titled.join("、") : ""));
+  }
+  // 兜底：完全无内容时，仍生成一段 DAY X 学习总结占位文字
+  if(!parts.length){
+    const label = day ? `DAY ${day}` : "本日";
+    return `${label}学习总结：请在编辑模式填写学习目标、视频和知识点，系统会自动归纳重点。`;
+  }
+  return parts.join("，") + "。";
+}
+
 // 学习模式
 function renderLearnMode(day, content, dayData){
   // 空内容提示
@@ -1086,6 +1361,15 @@ function renderLearnMode(day, content, dayData){
       </div>
     `;
   }
+
+  // 本日总结（自动生成，空内容也会生成 DAY X 兜底提示）
+  const summary = generateSummary(content, day);
+  html += `
+    <div style="background:rgba(24,144,255,.08);border-left:3px solid var(--primary);padding:10px 14px;border-radius:6px;margin:12px 0;">
+      <div style="font-size:13px;color:var(--primary);font-weight:600;margin-bottom:4px;">📝 本日总结</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.7;">${escapeHtml(summary)}</div>
+    </div>
+  `;
 
   // 笔记区
   html += `
@@ -1454,6 +1738,8 @@ function exportDayWord(day){
   if(content.knowledge && content.knowledge.length){
     html += `<h3>知识点</h3><div class="kp"><ol>${content.knowledge.map(k=>`<li>${k}</li>`).join("")}</ol></div>`;
   }
+  const summary = generateSummary(content, day);
+  if(summary){html += `<h3>本日总结</h3><p>${summary}</p>`;}
   html += `<h3>学习笔记</h3><div class="note">${(dayData.note||'').replace(/\n/g,'<br>')}</div>`;
   html += `</body></html>`;
 
@@ -1484,6 +1770,8 @@ function exportAllWord(){
     if(content.knowledge && content.knowledge.length){
       html += `<div class="kp"><b>知识点：</b><ol>${content.knowledge.map(k=>`<li>${k}</li>`).join("")}</ol></div>`;
     }
+    const summary = generateSummary(content, day);
+    if(summary){html += `<p><b>本日总结：</b>${summary}</p>`;}
     html += `<div class="note"><b>笔记：</b><br>${(dayData.note||'').replace(/\n/g,'<br>')}</div>`;
     html += `</div>`;
   }
@@ -1497,6 +1785,70 @@ function exportAllWord(){
   a.href = URL.createObjectURL(blob);
   a.download = `${swName}_学习笔记全集.doc`;
   a.click();
+}
+
+// ============ 修改学习总天数（页面内弹窗，不依赖 prompt） ============
+function changeTotalDays(){
+  const data = loadData();
+  const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
+  const info = doneCount > 0
+    ? `当前已完成 ${doneCount} / ${TOTAL_DAYS} 天。请输入新的总天数（1-365，不能小于已完成的 ${doneCount} 天）：`
+    : `当前进度 0 / ${TOTAL_DAYS} 天。请输入新的总天数（1-365）：`;
+  document.getElementById("daysModalInfo").textContent = info;
+  const input = document.getElementById("daysInput");
+  input.value = TOTAL_DAYS;
+  input.min = doneCount || 1;
+  document.getElementById("daysModal").classList.add("show");
+  setTimeout(()=>input.focus(), 100);
+}
+function closeDaysModal(){
+  document.getElementById("daysModal").classList.remove("show");
+}
+function applyDaysChange(){
+  const v = parseInt(document.getElementById("daysInput").value);
+  const data = loadData();
+  const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
+  if(!v || v < 1 || v > 365){alert("请输入 1-365 之间的整数");return;}
+  if(v < doneCount){alert(`新天数 ${v} 小于已完成的 ${doneCount} 天，请输入不小于 ${doneCount} 的数字`);return;}
+
+  // 内置预填充软件：按新天数重新分配每天的视频/知识点
+  const redistributed = redistributePlan(v);
+  console.log("[改天数] SOFTWARE_ID=", SOFTWARE_ID, "新天数=", v, "重分配结果=", redistributed);
+  if(redistributed){
+    // 强制覆盖 _content（清空旧的，写入重分配结果）
+    // 打卡记录和笔记存储在 STORAGE_KEY 中，不受影响，不会丢失
+    if(!confirm(`将按 ${v} 天重新分配每天的学习内容（视频/知识点）。\n已编辑的内容会被覆盖，但打卡记录和笔记会保留。继续？`)) return;
+    const contentKey = STORAGE_KEY + "_content";
+    // 直接用重分配结果替换 _content
+    const newContent = {};
+    Object.keys(redistributed).forEach(day=>{
+      newContent[parseInt(day)] = redistributed[day];
+    });
+    localStorage.setItem(contentKey, JSON.stringify(newContent));
+  } else if(v < TOTAL_DAYS){
+    // 非预填充软件或天数没变：仅清除超范围天内容
+    const contentKey = STORAGE_KEY + "_content";
+    const allContent = JSON.parse(localStorage.getItem(contentKey) || "{}");
+    Object.keys(allContent).forEach(k=>{ if(parseInt(k) > v) delete allContent[k]; });
+    localStorage.setItem(contentKey, JSON.stringify(allContent));
+  }
+
+  // 天数减少时：清除超范围天的打卡记录
+  if(v < TOTAL_DAYS){
+    const oldData = loadData();
+    const newData = {};
+    Object.keys(oldData).forEach(k=>{ if(parseInt(k) <= v) newData[k] = oldData[k]; });
+    saveData(newData);
+  }
+
+  TOTAL_DAYS = v;
+  localStorage.setItem(DAYS_KEY, String(TOTAL_DAYS));
+  document.getElementById("totalCount").textContent = TOTAL_DAYS;
+  renderCalendar();
+  if(currentDay > 0) closeModal();
+  closeDaysModal();
+  const tip = redistributed ? `✓ 已修改为 ${TOTAL_DAYS} 天，并重新分配每天学习内容` : `✓ 已修改为 ${TOTAL_DAYS} 天学习计划`;
+  showToast(tip);
 }
 
 // ============ 重置 ============

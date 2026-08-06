@@ -186,6 +186,24 @@
     font-size:13px;z-index:2000;transition:transform .3s;
   }
   .toast.show{transform:translateX(-50%) translateY(0);}
+  /* 恢复已删除模块 悬浮按钮 */
+  .restore-fab{
+    position:fixed;right:16px;bottom:72px;z-index:1500;
+    background:linear-gradient(135deg,#f59e0b,#d97706);
+    color:#fff;border-radius:20px;
+    padding:8px 14px;display:flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:500;cursor:pointer;
+    box-shadow:0 4px 12px rgba(245,158,11,.35);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .restore-fab:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(245,158,11,.45);}
+  .restore-fab:active{transform:translateY(0);}
+  .restore-fab-icon{font-size:14px;}
+  .restore-fab-label{white-space:nowrap;}
+  @media(max-width:640px){
+    .restore-fab{padding:6px 10px;font-size:11px;bottom:64px;}
+    .restore-fab-label{max-width:60px;overflow:hidden;text-overflow:ellipsis;}
+  }
   /* 自定义软件打卡全屏弹窗 */
   .custom-sw-modal{
     position:fixed;inset:0;z-index:3000;display:none;background:var(--bg);
@@ -631,6 +649,45 @@
   .kp-app .adv-row{padding:6px 0;border-bottom:1px solid var(--kp-border);font-size:12px;}
   .kp-app .adv-row b{color:var(--kp-accent);}
   .kp-app .kp-footer{text-align:center;color:var(--kp-text-dim);font-size:11px;padding:20px 14px;}
+  /* 软件选择网格（知识点首页） */
+  .kp-app .kp-section-title{
+    font-size:15px;color:var(--kp-text-dim);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;max-width:900px;margin-left:auto;margin-right:auto;padding:0 14px;
+  }
+  .kp-app .kp-section-title::before{
+    content:'';width:3px;height:16px;background:var(--kp-primary);border-radius:2px;
+  }
+  .kp-app .kp-software-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;
+    max-width:900px;margin:0 auto;padding:0 14px;
+  }
+  .kp-app .kp-sw-card{
+    background:var(--kp-card);border:1px solid var(--kp-border);border-radius:12px;
+    padding:18px;cursor:pointer;transition:all .2s;text-decoration:none;color:inherit;display:block;
+  }
+  .kp-app .kp-sw-card:hover{background:var(--kp-card-hover);border-color:var(--kp-primary);transform:translateY(-2px);}
+  .kp-app .kp-sw-card-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .kp-app .kp-sw-icon{
+    width:48px;height:48px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;color:#fff;
+  }
+  .kp-app .kp-sw-info{flex:1;min-width:0;}
+  .kp-app .kp-sw-name{font-size:15px;font-weight:600;color:var(--kp-text);margin-bottom:2px;}
+  .kp-app .kp-sw-desc{font-size:11px;color:var(--kp-text-dim);}
+  .kp-app .kp-sw-meta{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:11px;color:var(--kp-text-dim);padding-top:10px;border-top:1px solid var(--kp-border);
+  }
+  .kp-app .kp-sw-link{color:var(--kp-accent);font-weight:500;}
+  .kp-app .kp-empty-tip{
+    grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--kp-text-dim);font-size:13px;
+    background:var(--kp-card);border:1px dashed var(--kp-border);border-radius:8px;
+  }
+  @media(max-width:640px){
+    .kp-app .kp-software-grid{grid-template-columns:1fr;gap:10px;}
+    .kp-app .kp-sw-card{padding:14px;}
+  }
   /* 栏目切换标签 */
   .kp-app .kp-tabs{
     display:flex;gap:0;background:var(--kp-card);border-bottom:1px solid var(--kp-border);
@@ -757,7 +814,7 @@
 <div class="top-bar">
   <div class="top-bar-left">
     <button class="back-btn" id="backBtn" onclick="goBack()" aria-label="返回">←</button>
-    <div class="top-title"><span class="logo">学</span><span id="topTitle">学习打卡中心</span></div>
+    <div class="top-title"><span class="logo"><br></span><span id="topTitle"><br></span></div>
   </div>
 </div>
 
@@ -814,32 +871,35 @@
     </div>
   </div>
 
-  <!-- 知识点汇总视图（分栏目：UG + 其他软件） -->
+  <!-- 知识点汇总视图（通用：软件列表 + 动态详情） -->
   <div class="view" id="view-knowledge">
     <div class="kp-app">
-      <div class="kp-header">
-        <div class="kp-header-inner">
-          <h1>📚 知识点汇总中心</h1>
-          <div class="sub">分栏目浏览各软件学习知识点 · UG完整内嵌，其他软件一键跳转</div>
+      <!-- 软件列表视图 -->
+      <div id="kpListView">
+        <div class="kp-header">
+          <div class="kp-header-inner">
+            <h1>📚 知识点汇总中心</h1>
+            <div class="sub">选择软件，查看完整知识点汇总 · 支持所有打卡软件</div>
+          </div>
+        </div>
+        <div class="kp-main" style="padding-top:18px;">
+          <div class="kp-section-title">🎯 我的软件</div>
+          <div class="kp-software-grid" id="kpSoftwareGrid"></div>
         </div>
       </div>
 
-      <!-- 栏目切换标签 -->
-      <div class="kp-tabs">
-        <button class="kp-tab active" data-tab="ug" onclick="kpSwitchTab('ug')">🔧 UG NX 12.0</button>
-        <button class="kp-tab" data-tab="others" onclick="kpSwitchTab('others')">📦 其他软件</button>
-      </div>
-
-      <!-- UG知识点栏目（完整内嵌） -->
-      <div class="kp-tab-panel active" id="kpTabUg">
-        <div class="kp-sub-header">
-          <div class="kp-sub-title">UG NX 12.0 · 25节课知识点汇总</div>
-          <div class="kp-sub-desc">基于 B站《UG12.0从入门到精通 25节课》教程</div>
-          <div class="stats" id="kpStats"></div>
+      <!-- 知识点详情视图（默认隐藏） -->
+      <div id="kpDetailView" style="display:none;">
+        <div class="kp-header">
+          <div class="kp-header-inner">
+            <h1 id="kpDetailTitle">📚 知识点汇总</h1>
+            <div class="sub" id="kpDetailDesc"></div>
+            <div class="stats" id="kpDetailStats"></div>
+          </div>
         </div>
         <div class="kp-toolbar">
-          <a href="./UG_NX12_25节课知识点汇总.doc" download class="tool-btn primary">📥 下载Word文档</a>
-          <a href="https://www.bilibili.com/video/BV1SYJc6MEWJ/" target="_blank" class="tool-btn">▶ B站教程原页</a>
+          <button class="tool-btn" onclick="kpBackToList()">← 返回软件列表</button>
+          <button class="tool-btn" onclick="kpGoCheckin()">进入打卡 →</button>
           <button class="tool-btn" onclick="kpExpandAll()">展开/折叠全部</button>
         </div>
         <div class="kp-main">
@@ -848,31 +908,7 @@
             <div class="toc-list" id="kpTocList"></div>
           </div>
           <div id="kpContent"></div>
-          <div class="appendix">
-            <h2>⌨️ 常用快捷键</h2>
-            <table class="sc-table" id="kpShortcutTable"></table>
-          </div>
-          <div class="appendix">
-            <h2>🚀 后续进阶方向</h2>
-            <div id="kpAdvanceList"></div>
-          </div>
-          <div class="kp-footer">
-            本文档由 UG NX 12.0 自学打卡日历生成 · 基础教程：BV1SYJc6MEWJ
-          </div>
-        </div>
-      </div>
-
-      <!-- 其他软件知识点栏目（链接列表） -->
-      <div class="kp-tab-panel" id="kpTabOthers">
-        <div class="kp-sub-header">
-          <div class="kp-sub-title">📦 其他软件知识点</div>
-          <div class="kp-sub-desc">点击下方软件卡片，跳转至对应打卡页面查看学习内容</div>
-        </div>
-        <div class="kp-main">
-          <div class="kp-others-grid" id="kpOthersGrid"></div>
-          <div class="kp-footer">
-            提示：每个软件一个独立链接，点击即可进入对应打卡计划
-          </div>
+          <div class="kp-footer" id="kpDetailFooter"></div>
         </div>
       </div>
     </div>
@@ -882,7 +918,7 @@
   <div class="view" id="view-install">
     <div class="dl-app">
       <div class="dl-header">
-        <h1>📱 下载到手机使用</h1>
+        <h1 style="font-size: 22px">📱 使用zhi</h1>
         <div class="sub">把学习打卡中心装到手机上，像 APP 一样使用</div>
       </div>
       <div class="dl-main">
@@ -1004,14 +1040,11 @@
   <button class="nav-item active" data-view="home" onclick="switchView('home')">
     <span class="nav-icon">🏠</span><span>首页</span>
   </button>
-  <button class="nav-item" data-view="ug" onclick="switchView('ug')">
-    <span class="nav-icon">📅</span><span>软件打卡</span>
-  </button>
   <button class="nav-item" data-view="knowledge" onclick="switchView('knowledge')">
     <span class="nav-icon">📘</span><span>知识点</span>
   </button>
   <button class="nav-item" data-view="install" onclick="switchView('install')">
-    <span class="nav-icon">📱</span><span>下手机</span>
+    <span class="nav-icon">📱</span><span>使用</span>
   </button>
 </div>
 
@@ -1058,6 +1091,12 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 恢复已删除模块 悬浮按钮 -->
+<div class="restore-fab" id="restoreFab" style="display:none;" onclick="kpRestoreAllHidden()" title="恢复已删除的模块">
+  <span class="restore-fab-icon">↩</span>
+  <span class="restore-fab-label" id="restoreFabLabel">恢复</span>
+</div>
+
 <!-- 自定义软件打卡全屏弹窗（与UG打卡视图区分） -->
 <div class="custom-sw-modal" id="customSwModal">
   <div class="custom-sw-modal-header">
@@ -1068,10 +1107,32 @@
 </div>
 
 <script>
+// 清理遗留 Service Worker 与缓存
+// 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
+// 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    if(!regs.length) return;
+    regs.forEach(function(r){ r.unregister(); });
+    if(window.caches){
+      caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+    }
+    // 清理后刷新一次以脱离旧 SW 控制（用 sessionStorage 防止无限刷新）
+    if(!sessionStorage.getItem('sw_cleaned')){
+      sessionStorage.setItem('sw_cleaned','1');
+      location.reload();
+    }
+  });
+})();
+
 // 默认软件列表
 const defaultSoftware = [
   {id:"ug-nx12",name:"UG NX 12.0",desc:"西门子三维CAD/CAM",color:"#40A9FF",days:10,link:"#",type:"builtin"},
-  {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"./template.html?software=dji-action4",type:"template",iconLetter:"D"}
+  {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"./template.html?software=dji-action4",type:"template",iconLetter:"D"},
+  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"./template.html?software=solidworks",type:"template",iconLetter:"S"},
+  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"./template.html?software=excel",type:"template",iconLetter:"E"},
+  {id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,link:"./template.html?software=swimming",type:"template",iconLetter:"泳"}
 ];
 
 // 视图配置（UG打卡和知识点汇总已内嵌，不再用iframe）
@@ -1087,7 +1148,9 @@ function switchView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  document.querySelector('.nav-item[data-view="'+name+'"]').classList.add('active');
+  // 软件打卡(ug)已合并入首页，无独立导航项，进入时保持「首页」高亮
+  const navItem = document.querySelector('.nav-item[data-view="'+name+'"]') || (name==='ug' ? document.querySelector('.nav-item[data-view="home"]') : null);
+  if(navItem) navItem.classList.add('active');
   document.getElementById('topTitle').textContent = viewConfig[name].title;
   // 非首页显示返回按钮
   document.getElementById('backBtn').classList.toggle('show', name!=='home');
@@ -1095,7 +1158,7 @@ function switchView(name){
   window.scrollTo(0,0);
   if(name==='home') renderList();
   if(name==='ug' && typeof ugRenderCalendar==='function') ugRenderCalendar();
-  if(name==='knowledge' && typeof kpRender==='function') kpRender();
+  if(name==='knowledge' && typeof kpRenderSoftwareList==='function') kpRenderSoftwareList();
 }
 
 // 下载到手机-平台切换
@@ -1115,11 +1178,16 @@ function goBack(){
 function loadSoftware(){
   let list = JSON.parse(localStorage.getItem("checkin_software_list") || "null");
   if(!list){list = defaultSoftware;localStorage.setItem("checkin_software_list", JSON.stringify(list));}
+  // 已隐藏的内置模块（用户主动删除的），不再自动恢复
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
   defaultSoftware.forEach(d=>{
+    if(hidden.indexOf(d.id) >= 0) return; // 被删除的内置项不恢复
     const idx = list.findIndex(s=>s.id===d.id);
     if(idx >= 0){list[idx].color=d.color;list[idx].name=d.name;list[idx].desc=d.desc;}
     else{list.push(d);}
   });
+  // 过滤掉已被隐藏的内置项（防止残留）
+  list = list.filter(s=>hidden.indexOf(s.id) < 0);
   return list;
 }
 function saveSoftware(list){localStorage.setItem("checkin_software_list", JSON.stringify(list));}
@@ -1187,6 +1255,7 @@ function renderList(){
     </div>
   `;
   grid.innerHTML = html;
+  updateRestoreFloatingBtn();
 }
 
 function openModal(){
@@ -1224,11 +1293,22 @@ function addSoftware(){
 }
 
 function deleteSoftware(id){
-  if(!confirm("确定删除这个软件的打卡计划吗？所有打卡记录将丢失！"))return;
+  const isBuiltin = defaultSoftware.some(d=>d.id===id);
+  const msg = isBuiltin
+    ? "确定删除这个软件模块吗？将从列表中隐藏，并清除其打卡记录。"
+    : "确定删除这个软件的打卡计划吗？所有打卡记录将丢失！";
+  if(!confirm(msg)) return;
+  // 内置模块加入隐藏列表，防止刷新后被 defaultSoftware 重新恢复
+  if(isBuiltin){
+    const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+    if(hidden.indexOf(id) < 0) hidden.push(id);
+    localStorage.setItem("checkin_hidden_builtin", JSON.stringify(hidden));
+  }
   const list = loadSoftware().filter(s=>s.id!==id);
   saveSoftware(list);
   localStorage.removeItem("checkin_"+id);
   localStorage.removeItem("checkin_"+id+"_days");
+  localStorage.removeItem("checkin_"+id+"_content");
   showToast("已删除");
   renderList();
 }
@@ -1253,6 +1333,7 @@ function closeUgModal(){
 
 // 初始化
 renderList();
+updateRestoreFloatingBtn();
 document.getElementById("addModal").addEventListener("click",function(e){
   if(e.target===this) closeModal();
 });
@@ -2137,118 +2218,427 @@ const kpAdvances = [
   ["同步建模","直接修改非参数化模型，移动面、替换面、删除面、调整圆角大小"],
 ];
 
-// 知识点汇总渲染状态
-let kpRendered = false;
+// 知识点汇总专用：内置软件预填充知识点（与 template.html PRESET_PLANS 保持同步，精简版，仅知识点页面使用）
+const KPB_PRESETS = {
+  "dji-action4":[
+    {day:1,title:"开箱与基础设置",goal:"完成 Action 4 开箱、首次开机设置、配件安装，掌握 DJI Mimo App 连接与基本操作。",range:"第 1-2 视频",videos:[
+      {title:"新手大疆Action4运动相机开箱",knowledge:["开箱清单：主机、电池、保护框、磁吸快拆底座、Type-C数据线、说明书","首次开机：长按电源键2秒开机，按提示完成初始设置（语言、时区、日期）","电池安装：磁吸式电池仓，对准触点推入听到咔声即到位；1770mAh续航约160分钟(1080P/24fps)","存储卡安装：侧面卡槽，建议U3/V30及以上MicroSD卡，最大支持1TB"]},
+      {title:"DJI官方首次使用教程 & Mimo App连接",knowledge:["前屏+后屏双触摸彩屏：前屏自拍取景，后屏主操作；支持湿手操作和手套触控","磁吸快拆设计：机身背部磁吸，可快速拆装胸带、头盔支架、自拍杆等配件","DJI Mimo App：扫描说明书二维码下载，连接后可远程控制、实时预览、传输素材、直播","防水性能：裸机18米防水，搭配防水壳可达60米；下水前务必检查电池仓密封盖","充电：Type-C接口支持18W快充约90分钟充满；支持边充边录（需外接电源）","官方教程：DJI官网 osmo-action-4/video 页面有首次使用、骑行配件、GPS遥控器等官方教学视频"]},
+    ]},
+    {day:2,title:"参数详解与画质",goal:"系统掌握 Action 4 的分辨率、帧率、增稳、色彩模式等核心参数设置，理解 D-Log M 的优势。",range:"第 3-4 视频",videos:[
+      {title:"Action4 参数设置 / 画质设置 / 4K60帧教程",knowledge:["分辨率选择：4K/60fps（日常推荐）、4K/120fps（慢动作）、1080P/240fps（超慢动作）","帧率与快门法则：帧率60→快门1/120，避免运动模糊；遵循180度快门法则","增稳模式：RockSteady 3.0超强增稳（日常）、HorizonSteady地平线增稳（±45°校正，极限运动）","色彩模式：普通模式（直出色彩即拍即用）、D-Log M（10-bit，后期调色空间大，画面偏灰）","曝光设置：EV值建议0~+0.3；白天ISO 100-800，夜景ISO最高12800","白平衡：AWB自动适合大多数场景；手动固定色温可保持画面一致，后期更易调色","视角选择：标准155°（日常）、广角（变形大慎用）、窄视角（变形小适合拍人物）"]},
+      {title:"Action4 D-Log M / 色彩模式 / 后期调色",knowledge:["D-Log M 优势：记录超10亿种色彩，动态范围更宽，后期可还原丰富的高光/阴影层次","低光增强：夜景或室内开启，降低噪点提升纯净度，建议配合4K/25fps使用","弱光增稳：低光环境下提升画面稳定性，但会有轻微裁切","色温传感器：自动检测环境色温，配合AWB让色彩更准确","B站搜索提示：搜索「Action4 参数设置」「Action4 画质教程」找到视频后，在编辑模式填入BV号即可获取精准链接"]},
+    ]},
+    {day:3,title:"拍摄技巧与场景",goal:"掌握骑行五大拍摄角度与预录制模式的使用，学会根据场景选择最佳参数组合。",range:"第 5-6 视频",videos:[
+      {title:"Action 4运动相机骑行拍摄全角度教学",knowledge:["骑行拍摄推荐设置：4K/60fps + 超强增稳，保证画面流畅稳定","五大拍摄角度：①第一人称（胸口/头盔）②自拍角度 ③风景镜头 ④轮胎角度 ⑤延时摄影","第一人称视角：磁吸胸带固定在胸口，呈现骑行者视线，代入感最强","自拍角度：自拍杆延伸，拍摄骑行中的自己，适合Vlog记录","风景镜头：固定在车把或头盔顶部，拍摄前方风景，画面开阔大气","轮胎角度：固定在前叉或后下叉，拍摄车轮转动，动感十足"]},
+      {title:"十秒教会你用大疆Action4预录制模式",knowledge:["延时摄影：固定拍摄点记录骑行全程缩时画面，适合风景路段","预录制模式：按下快门前15秒/30秒的画面也会被记录，不错过精彩瞬间","预录制开启：设置→录像设置→预录制→选择15秒或30秒","预录制原理：相机持续缓存最新片段，按下快门时将缓存内容一并保存","预录制适用场景：运动中的意外瞬间、野生动物拍摄、体育比赛关键时刻","低光骑行建议：4K/25fps + 低光增强 + 弱光增稳，提升夜景骑行画质"]},
+    ]},
+    {day:4,title:"直播与连接",goal:"掌握 DJI Mimo App 连接相机、微信/抖音直播的完整流程，了解常见直播问题排查。",range:"第 7-8 视频",videos:[
+      {title:"Action4 直播教程 / DJI Mimo 直播 / 微信直播",knowledge:["DJI Mimo App：连接相机与手机的核心应用，支持远程控制、直播、素材传输","连接方式：相机开机→打开Mimo App→自动搜索→点击连接（Wi-Fi直连，无需路由器）","直播前相机设置：方向锁定关闭、增稳超强、录像模式1080P/30fps","直播平台：支持微信视频号、抖音、快手等主流平台","微信直播流程：Mimo→底部直播→选微信→授权登录视频号→设置参数→开始直播","直播参数：分辨率1080P、帧率30、码率自动（避免4K导致卡顿断流）","竖屏vs横屏：拍人/带货用竖屏，拍场景/户外用横屏"]},
+      {title:"直播常见问题排查 & GPS遥控器",knowledge:["方向锁定必须关闭：否则画面会倒或歪，在Mimo直播界面旋转画面调整","收音建议：相机离人远收音轻，用手机麦克风说话最稳；外接麦克风音质更好","直播常见问题：①画面卡→降分辨率到1080P ②断流→检查网络 ③声音小→用手机麦克风","结束直播：回到Mimo点停止直播，不要直接关相机，否则直播可能异常中断","GPS蓝牙遥控器：可选配件，远程控制拍照/录像，支持GPS轨迹记录叠加到视频"]},
+    ]},
+    {day:5,title:"后期调色与总结",goal:"掌握 D-Log M 素材的 LUT 调色流程，回顾五天学习内容，明确进阶方向。",range:"第 9-10 视频",videos:[
+      {title:"Action4 调色 / D-Log M 调色 / 达芬奇调色",knowledge:["D-Log M 调色流程：导入素材→应用LUT还原色彩→调整曝光/对比度/饱和度→导出","LUT文件获取：大疆官网下载中心→Osmo Action 4→软件与驱动→下载D-Log M LUT","达芬奇(DaVinci Resolve)调色：项目设置→色彩管理→LUT文件夹→放入LUT文件","达芬奇操作：导入D-Log M片段→右键新建时间线→节点→应用LUT→微调参数","调色三步法：①还原色彩(LUT) ②调整曝光(高光/阴影/中间调) ③调色温/饱和度","常见问题：D-Log M画面惨白或死黑→拍摄时检查曝光设置，避免过曝或欠曝"]},
+      {title:"五天学习总结 & 进阶方向",knowledge:["手机端调色：DJI Mimo App内置编辑器，支持模板、配乐、简单调色，适合快速出片","剪辑软件推荐：达芬奇(专业免费)、剪映(手机/电脑易上手)、Premiere(专业付费)","五天学习总结：开箱设置→参数画质→拍摄技巧→直播连接→后期调色，完整工作流已掌握","进阶方向：①延时摄影与缩时视频 ②HDR视频拍摄 ③慢动作创作 ④多机位剪辑"]},
+    ]},
+  ],
+  "solidworks":[
+    {day:1,title:"软件入门与草图基础",goal:"完成 SolidWorks 安装、界面熟悉，掌握草图绘制与几何约束。",range:"基础入门",videos:[
+      {title:"SolidWorks 入门教程 / 界面介绍 / SW草图绘制",knowledge:["SolidWorks 启动与界面：菜单栏、特征管理器、属性管理器、图形区域","新建零件文件：文件→新建→零件（Part），单位设置（毫米）","草图绘制工具：直线、圆、矩形、多边形、样条曲线","几何约束：平行、垂直、相切、共线、同心、等长、对称","尺寸标注：智能尺寸、基准尺寸、链尺寸","草图状态：欠约束（蓝色）、完全约束（黑色）、过约束（红色）","退出草图：点击右上角「退出草图」或按 Ctrl+Q"]},
+    ]},
+    {day:2,title:"拉伸特征与布尔运算",goal:"掌握拉伸凸台/基体、拉伸切除命令，理解布尔运算逻辑。",range:"基础特征",videos:[
+      {title:"SolidWorks 拉伸特征 / SW拉伸凸台 / SW布尔运算",knowledge:["拉伸凸台/基体（Boss-Extrude）：最基础的实体创建命令","拉伸参数：方向1/方向2、深度条件（给定深度/贯通到下一面/完全贯穿）","拔模斜度：拉伸时添加锥度，适合铸造件","薄壁特征：勾选「薄壁」可创建钣金件","拉伸切除（Cut-Extrude）：从实体中切除材料","布尔运算：合并（求和）、分割（求差）、相交（求交）","多实体零件：勾选「合并结果」控制是否合并"]},
+    ]},
+    {day:3,title:"旋转特征与扫描",goal:"掌握旋转凸台/基体、旋转切除、扫描特征的创建方法。",range:"基础特征",videos:[
+      {title:"SolidWorks 旋转特征 / SW扫描特征 / SW旋转切除",knowledge:["旋转凸台/基体：截面绕轴旋转生成回转体","旋转参数：旋转轴（直线/基准轴）、角度范围（0-360°）","旋转切除：创建螺纹、轴肩、沟槽等","扫描特征：截面沿路径扫描生成复杂形状","扫描三要素：轮廓（截面）、路径、引导线（可选）","扫描应用：弹簧、管道、复杂曲面零件"]},
+    ]},
+    {day:4,title:"阵列与镜像",goal:"掌握线性阵列、圆周阵列、镜像特征的使用方法。",range:"特征工具",videos:[
+      {title:"SolidWorks 阵列特征 / SW圆周阵列 / SW镜像",knowledge:["线性阵列：沿一个或两个方向重复特征","阵列参数：方向、间距、数量、要阵列的特征","圆周阵列：绕中心轴环形阵列（齿轮、螺栓孔等）","圆周阵列参数：旋转轴、角度、数量","镜像特征/镜像几何体：对称结构的快速创建","镜像基准面：选择对称平面作为镜像面","跳过实例：阵列中可跳过不需要的实例"]},
+    ]},
+    {day:5,title:"基准面与特征工具",goal:"掌握基准面创建、倒角、圆角、孔特征等常用辅助特征。",range:"特征工具",videos:[
+      {title:"SolidWorks 基准面 / SW倒角 / SW圆角 / SW孔特征",knowledge:["基准面创建：等距、平行、垂直、角度、点和直线等","基准面用途：草图平面、镜像面、分割面","倒角（Chamfer）：去除尖锐棱边，多种倒角方式","圆角（Fillet）：添加圆弧过渡，等半径/变半径","孔特征：简单孔、柱形沉头孔、锥形沉孔、螺纹孔","孔定位：位置、线性、圆周定位","筋特征：创建加强筋板"]},
+    ]},
+    {day:6,title:"曲面建模基础",goal:"了解曲面特征创建方法，掌握曲面转实体的技巧。",range:"高级特征",videos:[
+      {title:"SolidWorks 曲面建模 / SW曲面放样 / SW曲面填充",knowledge:["曲面设计入门：曲面工具栏与实体工具栏的区别","拉伸曲面、旋转曲面、扫描曲面：与对应实体命令类似","放样曲面：多个截面生成过渡曲面，常用于复杂外壳","边界曲面：四个边界定义的曲面，质量高于放样","曲面填充：孔洞修补，适合封闭破孔","加厚/缝合：曲面转换为实体的两种方法","曲面应用：产品外观、模具分型面、复杂塑料件设计"]},
+    ]},
+    {day:7,title:"装配与配合",goal:"掌握自底向上装配流程、配合类型与干涉检查方法。",range:"装配设计",videos:[
+      {title:"SolidWorks 装配教程 / SW配合类型 / SW干涉检查",knowledge:["装配模式：自底向上（先零件后装配，简单）vs 自顶向下（先装配骨架后零件，复杂）","新建装配体：新建→装配体（Assembly），单位与零件一致","插入零部件：从文件导入已有零件或直接在装配中新建零件","配合类型：重合、平行、垂直、相切、同轴心、距离、角度等","配合冲突：过多约束可能冲突，优先用几何关系减少配合数","干涉检查：工具→干涉检查，找到零件之间的碰撞部位","爆炸图：爆炸视图功能，生成装配动画和分解图"]},
+    ]},
+    {day:8,title:"工程图基础",goal:"掌握工程图模板设置、三视图生成、尺寸标注方法。",range:"工程出图",videos:[
+      {title:"SolidWorks 工程图教程 / SW三视图 / SW尺寸标注",knowledge:["新建工程图：新建→绘图（Drawing），选择图纸模板（A3/A4）","三视图生成：投影视图，从零件/装配拖入图纸自动生成","辅助视图：局部视图、剖视图、断面图、局部放大图","中心线/中心符号：自动添加中心线，符合国标要求","智能尺寸标注：草图尺寸继承，添加必要的装配尺寸","形位公差：公差标注，配合尺寸给出公差带","表面粗糙度：标注Ra符号、加工纹理方向、加工方法"]},
+    ]},
+    {day:9,title:"钣金与焊件",goal:"掌握钣金件的基体法兰、边线法兰、折弯等命令，了解焊件切割清单。",range:"专项模块",videos:[
+      {title:"SolidWorks 钣金教程 / SW基体法兰 / SW折弯 / SW焊件",knowledge:["钣金零件：进入钣金模块，设置厚度、折弯系数、K因子","基体法兰：第一块平板，确定厚度和基准面","边线法兰：沿边添加翻边、折边","斜接法兰：连接多条边的法兰","展开与折叠：查看展开尺寸，用于下料","切断边角：添加释放槽，防止折弯撕裂","焊件：结构件（型材、方管）快速建模，切割清单自动生成材料长度汇总"]},
+    ]},
+    {day:10,title:"综合练习与进阶",goal:"通过综合练习整合所有命令，明确后续进阶方向。",range:"综合实战",videos:[
+      {title:"SolidWorks 综合练习 / SW进阶方向",knowledge:["完整建模流程：读懂二维图纸→分析主体特征→先做主形体→附加次要特征→细节处理→测量检查","装配练习案例：减速器、齿轮泵、千斤顶等小型机械装置完整建模+装配+工程图","进阶方向：曲面造型（产品外观/汽车白车身）、自顶向下装配（大型设备整机）、运动仿真（MOTION模块，分析机构运动轨迹/速度/加速度）、有限元分析（SIMULATION模块，应力/变形/模态分析）、管路与电缆（Routing模块，油气管道/线束设计）","技巧：善用特征树重排序、配置化（同一零件不同规格用配置管理，避免存多个文件）、方程式（参数化联动，A变B自动跟着变）"]},
+    ]},
+  ],
+  "excel":[
+    {day:1,title:"界面与基础操作",goal:"熟悉 Excel 界面、工作簿/工作表管理、单元格导航与数据录入。",range:"基础入门",videos:[
+      {title:"Excel 入门教程 / Excel界面介绍 / 单元格操作",knowledge:["工作簿vs工作表：一个xlsx文件=工作簿，里面包含多个工作表（Sheet1/Sheet2…）","功能区：开始、插入、页面布局、公式、数据、审阅、视图七个核心选项卡","单元格定位：A1表示列A行1；Ctrl+方向键跳转到边缘区域；Ctrl+End跳转到有数据的右下角","快速填充：向下拖拽单元格右下角填充柄，双击自动填充到数据末尾","数据类型：文本、数值、日期、货币、百分比、科学计数法，可在「开始」选项卡切换","行高列宽调整：鼠标拖拽行标列标，双击边线自动适配内容","冻结窗格：视图→冻结窗格→冻结首行/首列，大数据表浏览必备"]},
+    ]},
+    {day:2,title:"常用公式基础",goal:"掌握四则运算、SUM/AVG/COUNT、IF条件判断等最常用公式。",range:"公式函数",videos:[
+      {title:"Excel 公式入门 / SUM / AVERAGE / COUNT / IF",knowledge:["公式写法：=开头，例如 =A1+B1*0.8，按回车得到结果","引用类型：A1相对引用（拖拽会变）；$A$1绝对引用（拖拽不变）；$A1混合引用","SUM(A1:A10)：求和，最常用；快捷键Alt+=自动选择相邻求和区域","AVERAGE(A1:A10)：平均值；MEDIAN中位数；MAX/MIN最大最小","COUNT(A1:A10)：只统计数字单元格数量；COUNTA统计非空单元格数量","IF(条件,真值,假值)：二分支，例如 =IF(A1>=60,\"及格\",\"不及格\")","嵌套IF：IF里面再套IF，但建议超过3层就用IFS或查表（VLOOKUP）代替"]},
+    ]},
+    {day:3,title:"条件格式与数据验证",goal:"学会用条件格式高亮关键数据，用数据验证控制输入正确性。",range:"格式校验",videos:[
+      {title:"Excel 条件格式 / 数据验证 / Excel下拉菜单",knowledge:["条件格式：开始→条件格式，支持色阶、图标集、数据条、自定义规则","三色刻度：数据排名可视化，一眼看出高低","突出显示规则：大于/小于/重复值/包含某文本自动变色","自定义规则：用公式控制，例如 =A1<60 整行标红","数据验证（数据有效性）：数据→数据验证，限制输入类型","序列下拉：来源填=区域或逗号分隔，如=Sheet2!$A$1:$A$5，实现下拉菜单","输入提示/出错警告：用户选单元格时给出提示，输错值时友好提示"]},
+    ]},
+    {day:4,title:"VLOOKUP/XLOOKUP与查询",goal:"掌握 VLOOKUP、XLOOKUP、INDEX+MATCH 等查找匹配公式。",range:"查询匹配",videos:[
+      {title:"Excel VLOOKUP / XLOOKUP / INDEX+MATCH",knowledge:["VLOOKUP(查谁,在哪查,返回第几列,是否模糊匹配)：最经典的跨表查询，注意第4参数写FALSE精确匹配","VLOOKUP限制：只能按第一列查，结果必须在查询列右侧","XLOOKUP(找什么,找哪列,返回列,默认值,匹配模式)：365/2021版本新函数，解决VLOOKUP所有痛点","XLOOKUP优势：左右任意方向、支持找不到返回自定义默认值、支持通配符匹配","INDEX(区域,行号,列号)+MATCH(找什么,找哪列,0)：老版本万能组合，兼容性最好","绝对引用注意：查找区域按F4切换绝对引用，否则拖拽公式区域会错位"]},
+    ]},
+    {day:5,title:"排序筛选与分类汇总",goal:"掌握数据排序、高级筛选、分类汇总等数据整理功能。",range:"数据整理",videos:[
+      {title:"Excel 排序筛选 / 分类汇总 / Excel高级筛选",knowledge:["排序：数据→排序，多字段排序（主关键字+次关键字，如先部门再薪资）","升序降序注意：中文按拼音字母序，可在「选项」里切换为笔画序","筛选：数据→筛选，每列表头出现小箭头，快速过滤条件","筛选多选：文本筛选→包含/等于/开头是；数字筛选→大于/Top10/高于平均值","清除筛选：数据→清除筛选","高级筛选：条件区域写复杂条件（同一行AND、不同行OR），可把筛选结果复制到新位置","分类汇总：先排序→数据→分类汇总，按某列分组统计（求和/计数/平均），自动分级折叠"]},
+    ]},
+    {day:6,title:"数据透视表",goal:"理解数据透视表布局字段、行/列/值/筛选器的作用，快速生成多维度报表。",range:"分析工具",videos:[
+      {title:"Excel 数据透视表 / PivotTable教程",knowledge:["创建：选中数据→插入→数据透视表（建议放新工作表）","四大区域：行（横向展开分类）、列（纵向加维度）、值（汇总指标）、筛选器（整表过滤）","值区域字段设置：默认求和，可改为计数/平均/最大/最小/占比","刷新：数据更改后→右键→刷新；属性里可设置打开文件时自动刷新","切片器：插入→切片器，交互式按钮过滤，可视化更友好，适合做Dashboard","时间分组：日期字段右键→组合，按年/季/月/日分层汇总","透视表数据源规范：扁平数据（一行一条明细），禁止合并单元格、禁止空列名"]},
+    ]},
+    {day:7,title:"图表可视化",goal:"掌握常用图表选择、美化与动态图表思路。",range:"可视化",videos:[
+      {title:"Excel 图表教程 / 柱形图 / 折线图 / 动态图表",knowledge:["选对图表：对比用柱形、趋势用折线、构成用饼图（饼图类别≤5）、关系用散点、占比用堆积","创建：选中数据→插入→推荐的图表，先选推荐再手动调整类型","图表元素：坐标轴、数据标签、图例、标题、网格线、数据表格，可在图表右侧+号一键开关","配色：不要用默认花花绿绿，主色+辅助色+中性色三种即可，企业配色找品牌规范","组合图：双Y轴（柱形+折线），例如销量柱形+同比折线","动态图表：数据源绑定透视表切片器或表单控件（窗体控件→组合框/滚动条），点击控件实时切换维度"]},
+    ]},
+    {day:8,title:"日期与文本函数",goal:"掌握 TEXT、LEFT/RIGHT/MID、CONCAT、DATEDIF、EOMONTH 等实用函数。",range:"函数进阶",videos:[
+      {title:"Excel 日期函数 / 文本函数 / TEXT / DATEDIF",knowledge:["TEXT(值,格式)：数字转自定义文本，如=TEXT(A1,\"0000\") 补零成4位；=TEXT(A1,\"yyyy-mm-dd\")日期格式化","LEFT/MID/RIGHT：从左/中间/右截取文本，例如 =MID(A1,7,8) 身份证取出生日期","CONCAT 或 &：拼接文本；建议用TEXTJOIN(分隔符,是否忽略空,区域) 批量拼接更优雅","日期本质：Excel里日期是序列号，1900-01-01=1，所以日期参与加减计算直接=A1+30","DATEDIF(起始,截止,单位)：算年龄/工龄，=DATEDIF(A1,TODAY(),\"y\")周岁；\"m\"月；\"d\"天","EOMONTH(日期,月偏移)：某月最后一天，如=EOMONTH(A1,0)当月最后一天，=EOMONTH(A1,-1)+1当月第一天","NETWORKDAYS(开始,结束,节假日)：工作日天数（排除周末+指定节假日）"]},
+    ]},
+    {day:9,title:"数组公式与多条件统计",goal:"掌握 SUMIF/COUNTIF 系列、SUMPRODUCT、IFS 多条件公式。",range:"函数进阶",videos:[
+      {title:"Excel SUMIFS / COUNTIFS / SUMPRODUCT 多条件统计",knowledge:["SUMIF(条件区,条件,求和区)：单条件求和；SUMIFS(求和区,条件区1,条件1,条件区2,条件2)多条件","COUNTIF/COUNTIFS：单/多条件计数，统计重复值最常用","AVERAGEIF/AVERAGEIFS：单/多条件平均","SUMPRODUCT(数组1,数组2)：老版本神函数，多条件统计无需Ctrl+Shift+E，例如=SUMPRODUCT((A:A=\"技术部\")*(B:B>10000)*B:B)","IFS(条件1,结果1,条件2,结果2…)：替代嵌套IF，更易读，365/2019及以后有","COUNTIFS查重：=COUNTIF($A$1:A1,A1)>1 标注重复","注意：整列引用会影响性能，尽量写死范围，例如 A1:A10000"]},
+    ]},
+    {day:10,title:"综合实战与自动化",goal:"完成报表自动化思路梳理，了解宏/VBA入门与Power Query数据清洗。",range:"综合自动化",videos:[
+      {title:"Excel 自动化 / Power Query / VBA入门",knowledge:["报表自动化三步：①数据源规范化（扁平表） ②清洗/合并（Power Query） ③透视表+切片器出Dashboard","Power Query：数据→获取数据→从文件/从表，编辑器里删列、改类型、合并、追加查询，全是图形操作无代码，刷新即可更新结果","合并多文件：Get Data→从文件夹→Combine，一键合并N个结构相同的Excel文件","宏录制：开发工具→录制宏，操作一遍→停止录制，自动生成VBA代码，重复操作一键完成","VBA入门：宏编辑器Alt+F11，模块里写Sub；语法和VB6类似，能做批量、复杂判断、自定义函数","进阶方向：Python+openpyxl（超复杂场景）、BI工具(Power BI/Tableau)连接Excel数据源、Excel做小型数据库+表单"]},
+    ]},
+  ],
+  "swimming":[
+    {day:1,title:"水性熟悉与憋气训练",goal:"掌握水感、放松心态，完成首次憋气5-10秒，掌握站立与漂浮。",range:"基础第1-2课",videos:[
+      {title:"游泳零基础第1天：水性熟悉、憋气、水中站立",knowledge:["下水前热身：肩环绕、手腕脚踝、弓步压腿、体侧拉伸、颈部绕环，每组30秒；水下抽筋多半因热身不足","池边适应：扶池边把脸埋入水中，先练3秒5秒逐步延长到10秒，克服怕水心理","憋气练习：吸一口气（不要吸太满），捏鼻或用鼻夹，面部入水，数秒后抬头，嘴呼气+鼻同时出气换气","水中站立：水深到胸时，收腿团身（像坐在椅子上）→双手向下划水→脚踩池底→身体直立","水母漂：吸一口气→低头埋水→全身放松自然漂浮→想站立时收腿团身→划水站起","呼吸节奏：水面上用嘴吸→水里口鼻一起慢慢吐（像吹泡泡）→快吐完抬头→再吸，避免抬头时才吸气导致呛水","心理建设：紧张会肌肉紧绷沉得更快，多练放松，水本身浮力足够托住成年人"]},
+    ]},
+    {day:2,title:"打水踢腿与浮板训练",goal:"掌握自由泳腿（直腿上抬、曲腿下压）和蛙泳腿（收翻蹬夹）的基本动作。",range:"基础第3-4课",videos:[
+      {title:"自由泳腿 & 蛙泳腿教学 / 浮板踢腿训练",knowledge:["自由泳打腿口诀：直腿上抬（膝盖不弯，像一根棍）、曲腿下压（像用脚面甩水），膝盖不要出水面","浮板打腿：双手握浮板前端，身体平直，头埋水里侧转换气，打腿幅度小而快（6次腿/2划手）","蛙泳腿口诀：收腿慢（脚跟靠近臀部）、翻脚快（脚面外翻像翻书，膝盖外开不超过肩宽）、蹬夹有力（向外向后蹬→快速夹腿并拢）","蛙泳腿常见错误：收腿过紧（大腿贴肚子）→阻力大；不翻脚→蹬不到水；蹬完不夹→前进动力损失一半","常见打腿错误：小腿打水（像骑自行车，应该髋发力）；踢水出水（水花大但不前进）","训练方法：扶板25米打腿×5组，组间休息30秒，目标是25米能连续打腿不断"]},
+    ]},
+    {day:3,title:"蛙泳腿部完整配合",goal:"熟练蛙泳收翻蹬夹，加入滑行，一次腿+一次滑行+一次呼吸节奏。",range:"蛙泳专项",videos:[
+      {title:"蛙泳腿完整训练 & 滑行练习",knowledge:["蛙泳节奏：划手→抬头吸气→收腿→蹬夹→滑行2秒，这是一次完整循环","滑行的重要性：蹬夹后身体伸直漂浮，利用惯性前进，这是蛙泳省力的关键；初学者最容易滑行不够就急着下一次","收翻蹬夹拆解：收腿慢（3秒）→翻脚快（1秒）→蹬夹用力（1秒）→滑行（2秒）","身体姿态：滑行时身体像一根箭，头不抬（平视池底），背不塌，腿伸直并拢","蹬夹发力：大腿先蹬→最后脚踝发力并拢，像个W形快速合起来","常见错误：抬头蹬腿（破坏平衡、身体下沉）；收翻同时进行（没节奏、速度出不来）","训练：25米蛙泳腿×6组，每组数动作次数，目标是一趟动作数越来越少说明滑行有效"]},
+    ]},
+    {day:4,title:"蛙泳划手与呼吸配合",goal:"掌握蛙泳划手动作、划手-抬头吸气节奏，完整1次划手+1次腿+1次呼吸配合。",range:"蛙泳专项",videos:[
+      {title:"蛙泳划手教学 & 划手+呼吸+蹬腿配合",knowledge:["蛙泳划手：双手前伸→向两侧分水（宽于肩）→屈肘抱水（像抱个球）→快速夹肘前伸回到前伸位置","划手口诀：划-抱-夹-伸，四步连贯，划手不要超过肩膀","呼吸配合：划手开始的同时抬头（不要用力仰，依靠划手的升力自然抬头）→张嘴吸气→夹肘前伸时脸入水→慢慢呼气","配合节奏：外划抬头吸气→收手同时收腿→前伸开始蹬夹→蹬夹结束滑行","常见错误：先蹬腿再划手（顺序反了，正确是划手收腿同步、前伸后蹬）；划手太大（超过肩导致身体扭动）；吸气时撑手（手不动只抬头，升力不够）","训练：陆上模仿（靠墙站立练划手+收腿同步）→水下扶池边练配合→短距离25米"]},
+    ]},
+    {day:5,title:"自由泳划手与换气",goal:"掌握自由泳划手入水-抱水-推水-出水-空中移臂，加入转头换气。",range:"自由泳专项",videos:[
+      {title:"自由泳划手分解教学 & 侧身换气",knowledge:["自由泳划手：入水（手掌斜插，中指先入水，在头前方位置）→抱水（屈肘像抱个大桶，手掌对准后方）→推水（S形向后推到大腿旁）→出水（提肘）→空中移臂（屈肘高肘）","高肘移臂：肘比手高，像过栅栏一样从水面上甩过去，避免侧身不够","转头换气：身体侧转（不是抬头！）→下巴贴肩膀→嘴露出水面吸气→转回正面脸入水呼气","换气三步骤：划手推水时身体侧转→同侧转头吸气（划右手→右侧转头换气）→移臂时转回正面","节奏：6次打腿+2次划手+1次换气；初学者先练3划换一次气（两边换），平衡更好","常见错误：抬头换气（塌腰、下沉）；只转头不转体（嘴出不来水、吸不到气）；划手过中线（身体蛇形扭动）","训练：扶板单臂划手×左右各50米→脱板25米→50米慢慢延长距离"]},
+    ]},
+    {day:6,title:"仰泳入门与踩水",goal:"掌握仰泳身体姿态、反蛙泳腿和踩水（原地漂浮不沉）技巧。",range:"救生&多泳姿",videos:[
+      {title:"仰泳入门 / 踩水教程（原地漂浮）",knowledge:["仰泳姿势：平躺水面，肚子像装了个西瓜（挺腰不要塌），头后仰，耳朵入水，眼睛看脚的方向","反蛙泳腿（蛙式仰泳腿）：收腿（膝盖向两侧开）→翻脚→蹬夹并拢，和蛙泳腿类似只是仰面做","仰泳打腿（自由泳反）：交替上踢下压，直腿上抬、曲腿下压，膝盖不露出水面","踩水（立泳）：最实用是蛙式踩水，身体直立→收腿→翻脚→蹬夹，手在胸前小范围拨水保持平衡","踩水用途：在深水区休息、等朋友、穿脱衣物、观察方向；救生员标准踩水30秒以上为合格","常见错误：仰泳坐起来（屁股下沉、像坐在椅子里，一定要挺腰展髋）；踩水频率太快（慢慢的大动作更省力）","穿衣服游泳（应急训练）：落水自救训练，衣服吸水重更费力，仰泳+蛙式踩水最省力"]},
+    ]},
+    {day:7,title:"出发与转身（蹬壁）",goal:"掌握蹬壁出发（平地起跳+水下蝶泳腿）、自由泳/蛙泳触壁滚翻转身。",range:"进阶技术",videos:[
+      {title:"游泳出发 & 转身蹬壁 / 翻滚转身",knowledge:["水下蹬壁：深水池壁，双手前伸，身体紧贴池壁，脚弓蹬在池壁上→用力蹬出→呈流线型滑行，直到速度变慢再开始打腿/划手","平地出发（跳发）：站出发台→弯腰抓台→蹬台→身体像箭一样入水（手先头后）→滑行→蝶泳腿/打腿3-5次→出水划手","自由泳翻滚转身（Flip Turn）：游近池壁→低头团身→翻跟头（臀部翻过头顶）→脚蹬壁→侧转身体→蹬出滑行","蛙泳触壁转身：触壁前最后一次划手→一只手触壁→团身收腿（像翻个跟头）→另一只手前伸→双脚蹬壁","注意：翻滚转身前不要吸气（容易呛水），转身过程中慢慢呼气；触壁前速度不要减，利用惯性翻得更快","训练：100米=25×4趟，每趟必须转身，强迫自己练习，一周后明显改善25米时间"]},
+    ]},
+    {day:8,title:"耐力训练与配速",goal:"通过间歇训练提升心肺耐力，学习按配速节奏完成200米不停歇。",range:"体能训练",videos:[
+      {title:"游泳耐力训练 / 间歇训练 / 完成200米",knowledge:["金字塔训练：100米→150米→200米→150米→100米，中间休息时间=游泳时间×0.5","间歇训练（提高心肺最有效）：50米快速游+20秒休息×8组，心率维持在最大心率70%","配速感觉：巡航速度（说话只能说短句）；慢速有氧（能完整说一句话）；冲刺（说不出话）","呼吸升级：蛙泳5次动作换1次呼吸→7次→9次，提升水下憋气耐力+放松水平","200米完赛策略：第一趟50米慢速找节奏；第二50米加速；第三50米稳住；第四50米冲刺（如果还力的话）","心率参考：静息60-70；有氧区间（220-年龄）×65%；不超过（220-年龄）×85%","训练日志：每次记下50米/100米成绩、组数、主观疲劳度（1-10分），2周后对比明显进步"]},
+    ]},
+    {day:9,title:"动作纠正与进阶方向",goal:"用水下视频对比分析自身动作错误，了解四大泳姿进阶路径。",range:"技术精进",videos:[
+      {title:"游泳动作纠正常见错误 & 进阶方向（蝶泳/混合泳）",knowledge:["自我检查法：让朋友录水下视频→对比教学视频，找出差异点（划手过中线？塌腰？翻脚不够？）","常见蛙泳错误排名：①滑行不够（急着下次动作） ②蹬夹无力（翻脚不对） ③抬头太高 ④配合顺序错","常见自由泳错误排名：①抬头换气 ②划手过中线 ③高肘不够 ④身体不侧转 ⑤打腿像骑自行车","进阶方向：蝶泳（波浪腰腹发力、第二腿打腿时机、海豚腿）、混合泳（蝶→仰→蛙→自顺序）、公开水域（公开水域游泳+潮汐+导航）、铁人三项（游泳750米+骑车20公里+跑步5公里）","装备升级：竞速泳镜（防雾镀膜）、硅胶泳帽（长发用）、手蹼脚蹼（练力量）、呼吸管（专注下半身动作）"]},
+    ]},
+    {day:10,title:"1000米实战 + 长期规划",goal:"完成1000米不间断游泳挑战，制定周训练计划和长期提升路径。",range:"综合实战",videos:[
+      {title:"1000米挑战 & 周训练计划制定 / 长期提升路径",knowledge:["1000米配速分配：蛙泳50米×15+自由泳50米×5 或者 10趟×100米，关键是保持均匀速度不要前快后崩","恢复动作：游不动就换仰泳漂30秒再继续，不要硬撑；踩水休息也是休息","周计划模板：3次/周，每次60-90分钟：热身500米→技术练习×5→主项×8→放松200米","动作进步法：每次训练只聚焦纠正1个点（本周练高肘，下周练翻脚），不要一次改太多","肌肉激活：核心（平板支撑/俄罗斯转体）、肩袖（弹力带外旋）、臀中肌（侧抬腿），陆上力量训练可大幅提升水中表现","进阶目标清单：50米蛙泳≤50秒、100米自由泳≤2分30秒、完成1500米、学会蝶泳50米、参加一次群众游泳比赛","长期提升：跟教练学10节课纠正动作 > 自己瞎练2年，遇到瓶颈（连续4周无进步）务必找教练"]},
+    ]},
+  ],
+};
 
-// 渲染UG知识点汇总
-function kpRender(){
-  if(kpRendered) return;
-  kpRendered = true;
-  // 渲染统计
-  const totalV = kpPlan.reduce((s,d)=>s+d.videos.length,0);
-  const totalK = kpPlan.reduce((s,d)=>s+d.videos.reduce((ss,v)=>ss+v.knowledge.length,0),0);
-  document.getElementById("kpStats").innerHTML = `
-    <span class="stat-pill"><b>10</b> 天</span>
-    <span class="stat-pill"><b>${totalV}</b> 节课</span>
+// 知识点汇总：当前选中的软件
+let kpCurrentSoftware = null;
+
+// 渲染软件列表（知识点首页）
+function kpRenderSoftwareList(){
+  const grid = document.getElementById("kpSoftwareGrid");
+  if(!grid) return;
+  // 显示列表视图，隐藏详情视图
+  document.getElementById("kpListView").style.display = "";
+  document.getElementById("kpDetailView").style.display = "none";
+  const list = (typeof loadSoftware==='function') ? loadSoftware() : [];
+  if(list.length === 0){
+    grid.innerHTML = `<div class="kp-empty-tip">暂无软件<br>可在「首页」点击「添加新软件」创建打卡计划</div>`;
+  } else {
+    grid.innerHTML = list.map(sw=>{
+      const iconLetter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+      const prog = (typeof getProgress==='function') ? getProgress(sw.id) : {done:0,total:sw.days||10};
+      const pct = prog.total>0 ? Math.round(prog.done/prog.total*100) : 0;
+      return `
+        <div class="kp-sw-card" onclick="kpShowKnowledge('${sw.id}')">
+          <div class="kp-sw-card-head">
+            <div class="kp-sw-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${iconLetter}</div>
+            <div class="kp-sw-info">
+              <div class="kp-sw-name">${sw.name}</div>
+              <div class="kp-sw-desc">${sw.desc||''} · ${sw.days||10}天计划</div>
+            </div>
+          </div>
+          <div class="kp-sw-meta">
+            <span>进度 ${prog.done}/${prog.total}（${pct}%）</span>
+            <span class="kp-sw-link">查看知识点 →</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  updateRestoreFloatingBtn();
+}
+
+// 恢复已删除的内置模块（单个）
+function kpRestoreSoftware(id){
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const newHidden = hidden.filter(h=>h!==id);
+  localStorage.setItem("checkin_hidden_builtin", JSON.stringify(newHidden));
+  const sw = defaultSoftware.find(d=>d.id===id);
+  // 清理旧数据残留
+  localStorage.removeItem("checkin_"+id);
+  localStorage.removeItem("checkin_"+id+"_days");
+  localStorage.removeItem("checkin_"+id+"_content");
+  showToast(`✓ 已恢复「${sw?sw.name:id}」`);
+  if(typeof renderList === 'function') renderList();
+  kpRenderSoftwareList();
+}
+
+// 恢复所有已删除的内置模块
+function kpRestoreAllHidden(){
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  if(!hidden.length){ showToast("没有需要恢复的模块"); return; }
+  hidden.forEach(id=>{
+    localStorage.removeItem("checkin_"+id);
+    localStorage.removeItem("checkin_"+id+"_days");
+    localStorage.removeItem("checkin_"+id+"_content");
+  });
+  localStorage.setItem("checkin_hidden_builtin", "[]");
+  showToast(`✓ 已恢复 ${hidden.length} 个模块`);
+  renderList();
+  kpRenderSoftwareList();
+  updateRestoreFloatingBtn();
+}
+
+// 更新恢复悬浮按钮的显示和文案
+function updateRestoreFloatingBtn(){
+  const fab = document.getElementById("restoreFab");
+  if(!fab) return;
+  const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
+  const hiddenBuiltins = defaultSoftware.filter(d=>hidden.indexOf(d.id) >= 0);
+  if(hiddenBuiltins.length > 0){
+    fab.style.display = "flex";
+    const label = document.getElementById("restoreFabLabel");
+    if(label) label.textContent = `恢复${hiddenBuiltins.length}个`;
+    fab.title = `恢复已删除的模块：${hiddenBuiltins.map(d=>d.name).join('、')}`;
+  } else {
+    fab.style.display = "none";
+  }
+}
+
+// 显示软件的知识点详情
+function kpShowKnowledge(softwareId){
+  const list = (typeof loadSoftware==='function') ? loadSoftware() : [];
+  const sw = list.find(s=>s.id===softwareId);
+  if(!sw) return;
+  kpCurrentSoftware = sw;
+
+  // 隐藏列表，显示详情
+  document.getElementById("kpListView").style.display = "none";
+  document.getElementById("kpDetailView").style.display = "";
+  document.getElementById("kpDetailTitle").textContent = `📚 ${sw.name} · 知识点汇总`;
+  document.getElementById("kpDetailDesc").textContent = `${sw.desc||''} · ${sw.days||10}天学习计划`;
+
+  // 获取该软件的知识点数据
+  const planData = kpGetPlanData(softwareId, sw);
+
+  // 统计
+  const totalDays = planData.length;
+  let totalV = 0, totalK = 0;
+  planData.forEach(d=>{
+    const vids = (d.videos && d.videos.length) ? d.videos : (d.videoTitles && d.videoTitles.length ? d.videoTitles : []);
+    totalV += vids.length;
+    const kps = (d.knowledge && d.knowledge.length) ? d.knowledge : (d.knowledgePoints && d.knowledgePoints.length ? d.knowledgePoints : []);
+    totalK += kps.length;
+  });
+  document.getElementById("kpDetailStats").innerHTML = `
+    <span class="stat-pill"><b>${totalDays}</b> 天</span>
+    <span class="stat-pill"><b>${totalV}</b> 个视频</span>
     <span class="stat-pill"><b>${totalK}</b> 条知识点</span>
   `;
+
   // 渲染目录
-  document.getElementById("kpTocList").innerHTML = kpPlan.map(d=>`
+  document.getElementById("kpTocList").innerHTML = planData.map(d=>`
     <a href="#kpDay${d.day}" class="toc-item">
       <span class="d">DAY ${d.day}</span>
       <span class="t">${d.title}</span>
     </a>
   `).join("");
-  // 渲染每天内容
-  document.getElementById("kpContent").innerHTML = kpPlan.map(d=>`
-    <div class="day-block" id="kpDay${d.day}">
-      <div class="day-head">
-        <div class="d-num">DAY ${d.day} · ${d.range} · 共 ${d.videos.length} 节</div>
-        <div class="d-title">${d.title}</div>
-        <div class="d-goal">🎯 ${d.goal}</div>
-      </div>
-      ${d.videos.map((v,i)=>`
-        <div class="lesson">
-          <h3>第 ${i+1} 课 · ${v.title}</h3>
-          <div class="vid">B站第 ${v.page} P · <a href="${KP_BASE_URL}?p=${v.page}" target="_blank">原页观看 →</a></div>
-          <div class="kp-list">
-            <div class="kp-label">📘 知识点（${v.knowledge.length} 条）</div>
-            <ol>${v.knowledge.map(k=>`<li>${k}</li>`).join("")}</ol>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `).join("");
-  // 渲染快捷键
-  document.getElementById("kpShortcutTable").innerHTML = kpShortcuts.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-  // 渲染进阶方向
-  document.getElementById("kpAdvanceList").innerHTML = kpAdvances.map(([n,d])=>`<div class="adv-row"><b>${n}</b>：${d}</div>`).join("");
-  // 渲染其他软件列表
-  kpRenderOthers();
-}
 
-// 渲染其他软件知识点链接
-function kpRenderOthers(){
-  const grid = document.getElementById("kpOthersGrid");
-  if(!grid) return;
-  const list = (typeof loadSoftware==='function') ? loadSoftware() : [];
-  // 过滤掉UG（UG在第一个栏目完整展示）
-  const others = list.filter(s=>s.id !== "ug-nx12");
-  if(others.length === 0){
-    grid.innerHTML = `<div class="kp-empty-tip">暂无其他软件<br>可在「首页」点击「添加新软件」创建自定义打卡计划</div>`;
-    return;
-  }
-  grid.innerHTML = others.map(sw=>{
-    const iconLetter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
-    const prog = (typeof getProgress==='function') ? getProgress(sw.id) : {done:0,total:sw.days||10};
-    const pct = prog.total>0 ? Math.round(prog.done/prog.total*100) : 0;
-    const isBuiltin = sw.type==="builtin";
-    const clickAction = isBuiltin
-      ? `onclick="event.preventDefault();kpGoToUg();"`
-      : `onclick="event.preventDefault();kpOpenOther('${sw.link}','${sw.name}');"`;
+  // 渲染每天内容
+  document.getElementById("kpContent").innerHTML = planData.map(d=>{
+    const vids = d.videos || [];
+    const kps = d.knowledge || [];
+    const videosHtml = vids.length ? `
+      <div class="kp-list" style="margin-top:10px;">
+        <div class="kp-label">🎬 学习视频（${vids.length} 个）</div>
+        <ol>${vids.map(v=>{
+          const title = typeof v === 'string' ? v : (v.title || v.name || '');
+          const url = typeof v === 'object' && v.url ? v.url : '';
+          return `<li>${title}${url ? ` <a href="${url}" target="_blank" style="color:#1890FF;">观看 →</a>` : ''}</li>`;
+        }).join("")}</ol>
+      </div>` : '';
+    const knowledgeHtml = kps.length ? `
+      <div class="kp-list" style="margin-top:10px;">
+        <div class="kp-label">📘 知识点（${kps.length} 条）</div>
+        <ol>${kps.map(k=>`<li>${k}</li>`).join("")}</ol>
+      </div>` : '';
+    const goalHtml = d.goal ? `<div class="d-goal">🎯 ${d.goal}</div>` : '';
     return `
-      <a href="${sw.link}" class="kp-other-card" ${clickAction}>
-        <div class="kp-other-card-head">
-          <div class="kp-other-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${iconLetter}</div>
-          <div class="kp-other-info">
-            <div class="kp-other-name">${sw.name}</div>
-            <div class="kp-other-desc">${sw.desc||""}</div>
-          </div>
+      <div class="day-block" id="kpDay${d.day}">
+        <div class="day-head">
+          <div class="d-num">DAY ${d.day}${(d.range ? ' · '+d.range : '')} · 共 ${vids.length} 个视频</div>
+          <div class="d-title">${d.title}</div>
+          ${goalHtml}
         </div>
-        <div class="kp-other-meta">
-          <span>进度 ${prog.done}/${prog.total}（${pct}%）</span>
-          <span class="kp-other-link">${isBuiltin ? '查看知识点 →' : '进入打卡 →'}</span>
+        <div style="padding:14px;">
+          ${videosHtml}
+          ${knowledgeHtml}
+          ${!vids.length && !kps.length ? '<div style="color:#999;font-size:12px;">暂无学习内容，请在打卡页编辑</div>' : ''}
         </div>
-      </a>
+      </div>
     `;
   }).join("");
+
+  // 底部说明
+  document.getElementById("kpDetailFooter").textContent = `本文档由学习打卡中心生成 · ${sw.name} · ${sw.days||10}天计划`;
 }
 
-// 跳转到UG打卡视图
-function kpGoToUg(){
-  if(typeof switchView==='function') switchView('ug');
+// 获取软件的知识点数据（兼容多种数据格式）
+function kpGetPlanData(softwareId, sw){
+  // 1. UG 使用硬编码 kpPlan（保留完整格式，视频块内单独 knowledge）
+  if(softwareId === "ug-nx12" && typeof kpPlan !== 'undefined' && kpPlan.length){
+    return kpPlan.map(d=>({
+      day: d.day, title: d.title, goal: d.goal, range: d.range,
+      videos: d.videos.map(v=>({
+        title: v.title,
+        url: KP_BASE_URL + '?p=' + v.page,
+        knowledge: v.knowledge
+      })),
+      knowledge: d.videos.reduce((s,v)=>s.concat(v.knowledge||[]),[])
+    }));
+  }
+
+  try{
+    // 取内置 KPB 预填充作为默认模板（视频+知识点完整）
+    let presetDays = null;
+    if(typeof KPB_PRESETS !== 'undefined' && KPB_PRESETS[softwareId]){
+      presetDays = KPB_PRESETS[softwareId]; // [{day,title,goal,range,videos:[{title,knowledge[]}]}]
+    }
+
+    // 读用户已编辑内容（_content）
+    const contentKey = "study_" + softwareId + "_content";
+    const savedContent = JSON.parse(localStorage.getItem(contentKey) || "{}");
+    const savedDays = Object.keys(savedContent)
+      .map(Number)
+      .filter(d=>d>=1)
+      .sort((a,b)=>a-b);
+
+    // 确定总天数：优先用户内容最大天，其次内置预填充长度，其次软件默认
+    const totalSaved = savedDays.length ? Math.max(...savedDays) : 0;
+    const totalPreset = presetDays ? presetDays.length : 0;
+    const totalDays = Math.max(totalSaved, totalPreset, sw.days || 10);
+
+    const result = [];
+    for(let d=1; d<=totalDays; d++){
+      // 内置对应天（按 day 匹配，找不到按索引兜底）
+      const presetItem = presetDays
+        ? presetDays.find(p=>p.day===d) || presetDays[d-1] || null
+        : null;
+      // 用户保存内容
+      const rawItem = savedContent[d] || savedContent[String(d)] || null;
+
+      // 合并：用户填过的优先（非空字段覆盖内置）
+      const userTitle = rawItem && (rawItem.title && rawItem.title !== `第 ${d} 天`);
+      const userGoal = rawItem && rawItem.goal;
+      const userVideos = rawItem && ((rawItem.videos && rawItem.videos.length) || (rawItem.videoTitles && rawItem.videoTitles.length));
+      const userKnowledge = rawItem && ((rawItem.knowledge && rawItem.knowledge.length) || (rawItem.knowledgePoints && rawItem.knowledgePoints.length));
+
+      const title = userTitle ? rawItem.title : (presetItem ? presetItem.title : `第 ${d} 天`);
+      const goal = userGoal ? rawItem.goal : (presetItem ? presetItem.goal : "");
+      const range = presetItem ? (presetItem.range || "") : (rawItem && rawItem.range ? rawItem.range : "");
+
+      // 视频块：用户视频+内置视频合并，每个视频块都带自己的 knowledge（内置模板有）
+      let mergedVideos = [];
+      if(userVideos){
+        const uv = rawItem.videos || rawItem.videoTitles || [];
+        mergedVideos = uv.map((v,i)=>{
+          const vt = typeof v === 'string' ? {title:v} : (typeof v==='object' ? v : {title:String(v)});
+          // 找内置对应位置的知识点作为兜底（如果用户这条视频没有自己的 knowledge）
+          const presVid = presetItem && presetItem.videos ? presetItem.videos[i] || null : null;
+          const kps = (vt.knowledge && vt.knowledge.length)
+            ? vt.knowledge
+            : (presVid && presVid.knowledge ? presVid.knowledge : []);
+          return {
+            title: vt.title || vt.name || `视频 ${i+1}`,
+            url: vt.url || "",
+            knowledge: kps
+          };
+        });
+        // 如果内置还有更多视频块，补在后面（内容多比空好）
+        if(presetItem && presetItem.videos && presetItem.videos.length > uv.length){
+          for(let i=uv.length; i<presetItem.videos.length; i++){
+            const pv = presetItem.videos[i];
+            mergedVideos.push({
+              title: pv.title || `视频 ${i+1}`,
+              url: pv.url || "",
+              knowledge: pv.knowledge || []
+            });
+          }
+        }
+      } else if(presetItem && presetItem.videos && presetItem.videos.length){
+        mergedVideos = presetItem.videos.map(pv=>({
+          title: pv.title || "",
+          url: pv.url || "",
+          knowledge: pv.knowledge || []
+        }));
+      }
+
+      // 汇总当天所有知识点（用于目录统计等）
+      const allKnowledge = mergedVideos.reduce((s,v)=>s.concat(v.knowledge||[]), []);
+      // 如果用户 knowledge 字段有内容（按天聚合的），也加进来（去重）
+      if(userKnowledge){
+        const uk = rawItem.knowledge || rawItem.knowledgePoints || [];
+        uk.forEach(k=>{ if(allKnowledge.indexOf(k)<0) allKnowledge.push(k); });
+      }
+
+      result.push({
+        day: d, title, goal, range,
+        videos: mergedVideos,
+        knowledge: allKnowledge
+      });
+    }
+    return result;
+  }catch(e){
+    console.warn("读取知识点数据失败:", e);
+    const days = sw.days || 10;
+    const result = [];
+    for(let d=1; d<=days; d++){
+      result.push({day: d, title: `第 ${d} 天`, goal: "", range: "", videos: [], knowledge: []});
+    }
+    return result;
+  }
 }
 
-// 打开其他软件打卡弹窗
-function kpOpenOther(link,title){
-  if(typeof openUgModal==='function') openUgModal(link,title);
+// 返回软件列表
+function kpBackToList(){
+  kpCurrentSoftware = null;
+  kpRenderSoftwareList();
 }
 
-// 切换栏目
-function kpSwitchTab(tab){
-  document.querySelectorAll('.kp-tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-  document.querySelectorAll('.kp-tab-panel').forEach(p=>p.classList.remove('active'));
-  if(tab==='ug'){
-    document.getElementById('kpTabUg').classList.add('active');
-  }else{
-    document.getElementById('kpTabOthers').classList.add('active');
-    kpRenderOthers();
+// 跳转到打卡页
+function kpGoCheckin(){
+  if(!kpCurrentSoftware) return;
+  const sw = kpCurrentSoftware;
+  if(sw.id === "ug-nx12"){
+    switchView('ug');
+  } else if(sw.link){
+    window.open(sw.link, '_blank');
   }
 }
 
 // 展开/折叠全部
 function kpExpandAll(){
-  document.querySelectorAll("#kpContent .day-block").forEach(b=>{
+  document.querySelectorAll("#kpContent .day-block > div:last-child").forEach(b=>{
     b.style.display = b.style.display==="none"?"":"none";
   });
 }
