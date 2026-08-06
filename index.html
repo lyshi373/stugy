@@ -976,7 +976,7 @@
   <div class="view" id="view-install">
     <div class="dl-app">
       <div class="dl-header">
-        <h1 style="font-size: 22px">📱 使用zhi</h1>
+        <h1 style="font-size: 22px">📱 使用指南</h1>
         <div class="sub">把学习打卡中心装到手机上，像 APP 一样使用</div>
       </div>
       <div class="dl-main">
@@ -1216,7 +1216,7 @@ const viewConfig = {
   home:{title:"学习打卡中心"},
   ug:{title:"UG NX 12.0 打卡"},
   knowledge:{title:"知识点汇总"},
-  install:{title:"下载到手机"}
+  install:{title:"使用指南"}
 };
 
 // 切换视图
@@ -1410,8 +1410,8 @@ function closeUgModal(){
   window.location.href = "./index.html";
 }
 
-// 初始化
-renderList();
+// 初始化：先统一视图状态（标题、返回按钮显隐），再渲染首页列表
+switchView('home');
 updateRestoreFloatingBtn();
 document.getElementById("addModal").addEventListener("click",function(e){
   if(e.target===this) closeModal();
