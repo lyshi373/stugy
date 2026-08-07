@@ -1198,15 +1198,37 @@
 // 清理遗留 Service Worker 与缓存
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
+// 每次更新代码时，请递增 CACHE_VERSION 常量
+const CACHE_VERSION = "v7"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
+  
+  // 检查缓存版本号是否变化
+  const lastVersion = localStorage.getItem('sw_cache_version');
+  const versionChanged = lastVersion !== CACHE_VERSION;
+  
+  // 如果版本号变化或首次运行，强制清理
+  if(versionChanged){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+      if(window.caches){
+        caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+      }
+      // 更新版本号
+      localStorage.setItem('sw_cache_version', CACHE_VERSION);
+      // 清理后刷新一次
+      location.reload();
+    });
+    return;
+  }
+  
+  // 原有清理逻辑（兼容旧版本）
   navigator.serviceWorker.getRegistrations().then(function(regs){
     if(!regs.length) return;
     regs.forEach(function(r){ r.unregister(); });
     if(window.caches){
       caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
     }
-    // 清理后刷新一次以脱离旧 SW 控制（用 sessionStorage 防止无限刷新）
     if(!sessionStorage.getItem('sw_cleaned')){
       sessionStorage.setItem('sw_cleaned','1');
       location.reload();
@@ -1214,13 +1236,17 @@
   });
 })();
 
-// 默认软件列表
+// 默认软件列表（3个核心模块）
 const defaultSoftware = [
   {id:"ug-nx12",name:"UG NX 12.0",desc:"西门子三维CAD/CAM",color:"#40A9FF",days:10,link:"#",type:"builtin"},
   {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"./template.html?software=dji-action4",type:"template",iconLetter:"D"},
-  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"./template.html?software=solidworks",type:"template",iconLetter:"S"},
-  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"./template.html?software=excel",type:"template",iconLetter:"E"},
   {id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,link:"./template.html?software=swimming",type:"template",iconLetter:"泳"}
+];
+
+// 扩展软件列表（可在知识点汇总页面查看）
+const extendedSoftware = [
+  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"./template.html?software=solidworks",type:"template",iconLetter:"S"},
+  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"./template.html?software=excel",type:"template",iconLetter:"E"}
 ];
 
 // 视图配置（UG打卡和知识点汇总已内嵌，不再用iframe）
@@ -1267,11 +1293,13 @@ function goBack(){
 // 加载软件列表
 function loadSoftware(){
   let list = JSON.parse(localStorage.getItem("checkin_software_list") || "null");
-  if(!list){list = defaultSoftware;localStorage.setItem("checkin_software_list", JSON.stringify(list));}
+  if(!list){list = [...defaultSoftware, ...extendedSoftware];localStorage.setItem("checkin_software_list", JSON.stringify(list));}
   // 已隐藏的内置模块（用户主动删除的），不再自动恢复
   const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
   const permanentlyDeleted = JSON.parse(localStorage.getItem("checkin_permanently_deleted") || "[]");
-  defaultSoftware.forEach(d=>{
+  // 合并 defaultSoftware 和 extendedSoftware
+  const allBuiltins = [...defaultSoftware, ...extendedSoftware];
+  allBuiltins.forEach(d=>{
     if(hidden.indexOf(d.id) >= 0) return; // 被删除的内置项不恢复
     if(permanentlyDeleted.indexOf(d.id) >= 0) return; // 被彻底删除的内置项也不恢复
     const idx = list.findIndex(s=>s.id===d.id);
@@ -1282,6 +1310,13 @@ function loadSoftware(){
   const allHidden = [...hidden, ...permanentlyDeleted];
   list = list.filter(s=>allHidden.indexOf(s.id) < 0);
   return list;
+}
+// 加载核心模块（首页使用，不含扩展软件）
+function loadCoreSoftware(){
+  const list = loadSoftware();
+  // 只保留 defaultSoftware 中的模块和用户自定义模块
+  const coreIds = new Set(defaultSoftware.map(s=>s.id));
+  return list.filter(s => coreIds.has(s.id) || s.type === "custom" || !s.type);
 }
 function saveSoftware(list){localStorage.setItem("checkin_software_list", JSON.stringify(list));}
 
@@ -1302,9 +1337,9 @@ function getProgress(id){
   return {done, total:days};
 }
 
-// 渲染软件列表
+// 渲染软件列表（首页只显示核心模块）
 function renderList(){
-  const list = loadSoftware();
+  const list = loadCoreSoftware();
   const grid = document.getElementById("softwareGrid");
   let html = "";
   list.forEach(sw=>{
@@ -1953,18 +1988,23 @@ function ugOpenDayModal(day){
   document.getElementById("ugModalDayLabel").textContent = `DAY ${day} · 共 10 天`;
   document.getElementById("ugModalTitle").textContent = p.title;
 
+  // 先停止所有可能存在的视频
+  ugStopAllVideos();
+  ugCurrentVideoIdx = 0;
+
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   let videoHtml = "";
-  p.videos.forEach((v,i)=>{
-    const link = ugGetVideoLink(v);
-    const label = ugGetVideoLabel(v);
-    const kps = v.knowledge || [];
-    const kpHtml = kps.length ? `<div class="kp-card">
-      <div class="kp-title">📘 本课知识点预习/复习</div>
-      <ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul>
-    </div>` : "";
-
-    if(isMobile){
+  
+  if(isMobile){
+    // 手机端：所有视频都是唤起B站App的卡片
+    p.videos.forEach((v,i)=>{
+      const link = ugGetVideoLink(v);
+      const label = ugGetVideoLabel(v);
+      const kps = v.knowledge || [];
+      const kpHtml = kps.length ? `<div class="kp-card">
+        <div class="kp-title">📘 本课知识点预习/复习</div>
+        <ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul>
+      </div>` : "";
       videoHtml += `
         <div class="video-item">
           <div class="video-mobile-card">
@@ -1978,27 +2018,54 @@ function ugOpenDayModal(day){
           </div>
           ${kpHtml}
         </div>`;
-    } else {
-      const embed = ugGetEmbedUrl(v);
-      videoHtml += `
-        <div class="video-item">
-          <iframe src="${embed}"
-            scrolling="no" border="0" frameborder="no" framespacing="0"
-            allowfullscreen="true"
-            referrerpolicy="no-referrer"
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
-          <div class="video-meta">
-            <div>
-              <div class="video-title">${v.title}</div>
-              <div class="src">${label}</div>
-            </div>
-            <a href="${link}" target="_blank">在 B站 原页观看 →</a>
+    });
+  } else {
+    // 电脑端：单 iframe 方案
+    const firstVideo = p.videos[0];
+    const firstLink = ugGetVideoLink(firstVideo);
+    const firstLabel = ugGetVideoLabel(firstVideo);
+    const firstEmbed = ugGetEmbedUrl(firstVideo);
+    const firstKps = firstVideo.knowledge || [];
+    const firstKpHtml = firstKps.length ? `<div class="kp-card">
+      <div class="kp-title">📘 本课知识点预习/复习</div>
+      <ul>${firstKps.map(k=>`<li>${k}</li>`).join("")}</ul>
+    </div>` : "";
+    
+    // 主播放区域（只有一个 iframe）
+    videoHtml += `
+      <div class="video-item" style="margin-bottom:16px;">
+        <iframe id="ug-main-video-iframe" src="${firstEmbed}"
+          scrolling="no" border="0" frameborder="no" framespacing="0"
+          allowfullscreen="true"
+          referrerpolicy="no-referrer"
+          allow="fullscreen; encrypted-media; picture-in-picture"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
+        <div class="video-meta">
+          <div>
+            <div class="video-title" id="ug-current-video-title">▶ ${firstVideo.title}</div>
+            <div class="src">${firstLabel}</div>
           </div>
-          ${kpHtml}
-        </div>`;
+          <div id="ug-current-video-meta"><a href="${firstLink}" target="_blank">在 B站 原页观看 →</a></div>
+        </div>
+        <div id="ug-current-video-kp">${firstKpHtml}</div>
+      </div>`;
+    
+    // 其他视频切换按钮
+    if(p.videos.length > 1){
+      videoHtml += `<div style="margin-top:12px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">📋 视频列表（点击切换）</div>`;
+      videoHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">`;
+      p.videos.forEach((v,i)=>{
+        if(i === 0) return;
+        const label = ugGetVideoLabel(v);
+        videoHtml += `
+          <button style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(24,144,255,.1);border:1px solid rgba(24,144,255,.3);color:var(--primary,#1890FF);border-radius:6px;cursor:pointer;" onclick="ugSwitchVideo(${i}, ${day})">
+            <div style="font-weight:500;">${v.title}</div>
+            <div style="font-size:11px;opacity:.7;">${label}</div>
+          </button>`;
+      });
+      videoHtml += `</div></div>`;
     }
-  });
+  }
 
   const pointsHtml = p.points.map(pt=>`<li>${pt}</li>`).join("");
   const isDone = dayData.checked === true;
@@ -2014,7 +2081,7 @@ function ugOpenDayModal(day){
       <ul>${pointsHtml}</ul>
     </div>
     <div class="video-section">
-      <h3>学习视频（B站精选）</h3>
+      <h3>学习视频（点击切换，仅播放一个）</h3>
       ${videoHtml}
       <div class="extra-resources">
         <h4>本日学习视频所属教程</h4>
@@ -2100,7 +2167,63 @@ function ugOpenDayModal(day){
   });
 }
 
+/* ============ 视频控制（UG打卡视图） - 单 iframe 方案 ============ */
+let ugCurrentVideoIdx = 0; // 当前播放的视频索引
+
+function ugStopAllVideos(){
+  const iframe = document.getElementById("ug-main-video-iframe");
+  if(iframe){
+    iframe.src = "about:blank";
+  }
+}
+
+/* ============ 视频切换（仅同时播放一个） ============ */
+function ugSwitchVideo(targetIdx, day){
+  const p = ugPlan.find(x=>x.day===day);
+  if(!p || !p.videos[targetIdx]) return;
+  
+  const v = p.videos[targetIdx];
+  const bv = v.bv;
+  if(!bv) return;
+  
+  const link = ugGetVideoLink(v);
+  const embed = ugGetEmbedUrl(v).replace('autoplay=0', 'autoplay=1');
+  
+  ugCurrentVideoIdx = targetIdx;
+  
+  // 直接修改 iframe 的 src
+  const iframe = document.getElementById("ug-main-video-iframe");
+  if(iframe){
+    iframe.src = embed;
+  }
+  
+  // 更新视频标题显示
+  const titleEl = document.getElementById("ug-current-video-title");
+  if(titleEl){
+    titleEl.innerHTML = `▶ ${v.title}`;
+  }
+  const metaEl = document.getElementById("ug-current-video-meta");
+  if(metaEl){
+    metaEl.innerHTML = `<a href="${link}" target="_blank">在 B站 原页观看 →</a>`;
+  }
+  // 更新知识点
+  const kps = v.knowledge || [];
+  const kpEl = document.getElementById("ug-current-video-kp");
+  if(kpEl){
+    if(kps.length){
+      kpEl.innerHTML = `<div class="kp-card">
+        <div class="kp-title">📘 本课知识点预习/复习</div>
+        <ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul>
+      </div>`;
+    } else {
+      kpEl.innerHTML = "";
+    }
+  }
+}
+
 function ugCloseDayModal(){
+  // 关闭时停止所有视频播放
+  ugStopAllVideos();
   document.getElementById("ugModalMask").classList.remove("active");
   document.body.style.overflow = "";
   if(typeof renderList==='function') renderList();
@@ -2840,8 +2963,8 @@ function kpGetPlanData(softwareId, sw){
       presetDays = KPB_PRESETS[softwareId]; // [{day,title,goal,range,videos:[{title,knowledge[]}]}]
     }
 
-    // 读用户已编辑内容（_content）
-    const contentKey = "study_" + softwareId + "_content";
+    // 读用户已编辑内容（_content） - 使用 checkin_ 前缀与 template.html 保持一致
+    const contentKey = "checkin_" + softwareId + "_content";
     const savedContent = JSON.parse(localStorage.getItem(contentKey) || "{}");
     const savedDays = Object.keys(savedContent)
       .map(Number)
@@ -2851,7 +2974,57 @@ function kpGetPlanData(softwareId, sw){
     // 确定总天数：优先用户内容最大天，其次内置预填充长度，其次软件默认
     const totalSaved = savedDays.length ? Math.max(...savedDays) : 0;
     const totalPreset = presetDays ? presetDays.length : 0;
-    const totalDays = Math.max(totalSaved, totalPreset, sw.days || 10);
+    
+    // 从 DAYS_KEY 获取实际使用的天数（如果有修改过）
+    const daysKey = "checkin_" + softwareId + "_days";
+    const savedDaysCount = parseInt(localStorage.getItem(daysKey) || "0");
+    
+    // 优先级：保存的天数 > 用户内容最大天 > 内置预填充 > 软件默认
+    const totalDays = savedDaysCount || totalSaved || totalPreset || sw.days || 10;
+
+    // 判断是否需要重新分配：
+    // 1. 如果用户保存的天数已经足够（savedDays.length >= totalDays），直接读取显示
+    // 2. 如果有保存的内容但天数不够，需要重新分配
+    const hasSavedContent = savedDays.length > 0;
+    const hasEnoughDays = savedDays.length >= totalDays;
+    const needsRedistribute = hasSavedContent && !hasEnoughDays && totalDays > 0 && (presetDays || savedDays.length > 0);
+
+    if(needsRedistribute){
+      // 使用均匀分配策略
+      console.log("[kpGetPlanData] 需要重新分配", {savedDays: savedDays.length, totalDays});
+      return kpRedistributeEvenly(savedContent, presetDays, totalDays, sw);
+    }
+
+    // 如果用户已经保存了足够的天数内容，直接读取显示
+    if(hasEnoughDays){
+      // 直接读取用户保存的内容
+      const result = [];
+      for(let d=1; d<=totalDays; d++){
+        const rawItem = savedContent[d] || savedContent[String(d)] || null;
+        if(rawItem){
+          // 合并知识点
+          const allKnowledge = rawItem.videos 
+            ? rawItem.videos.reduce((s,v)=>s.concat(v.knowledge||[]), [])
+            : [];
+          if(rawItem.knowledge && rawItem.knowledge.length){
+            rawItem.knowledge.forEach(k=>{ if(allKnowledge.indexOf(k)<0) allKnowledge.push(k); });
+          }
+          
+          result.push({
+            day: d,
+            title: rawItem.title || `第 ${d} 天`,
+            goal: rawItem.goal || "",
+            range: rawItem.range || "",
+            videos: rawItem.videos || [],
+            knowledge: allKnowledge
+          });
+        } else {
+          result.push({day: d, title: `第 ${d} 天`, goal: "", range: "", videos: [], knowledge: []});
+        }
+      }
+      console.log("[kpGetPlanData] 直接使用用户保存的内容", result.length, "天");
+      return result;
+    }
 
     const result = [];
     for(let d=1; d<=totalDays; d++){
@@ -2932,6 +3105,130 @@ function kpGetPlanData(softwareId, sw){
     }
     return result;
   }
+}
+
+// 均匀分配策略：将所有视频和知识点平均分配到每一天
+function kpRedistributeEvenly(savedContent, presetDays, totalDays, sw){
+  // 收集所有视频和知识点
+  const allVideos = [];
+  const allKnowledge = [];
+  
+  // 从用户保存的内容收集
+  const savedDays = Object.keys(savedContent).map(Number).sort((a,b)=>a-b);
+  for(let d of savedDays){
+    const item = savedContent[d] || savedContent[String(d)];
+    if(item && item.videos && item.videos.length){
+      allVideos.push(...item.videos);
+    }
+    if(item && item.knowledge && item.knowledge.length){
+      allKnowledge.push(...item.knowledge);
+    }
+  }
+  
+  // 如果用户没有有效内容，从预设数据收集
+  if(allVideos.length === 0 && presetDays){
+    for(let p of presetDays){
+      if(p.videos){
+        p.videos.forEach((v,i)=>{
+          allVideos.push({
+            title: v.title || `视频 ${i+1}`,
+            page: v.page || (p.day - 1) * 3 + i + 1,
+            url: v.url || "",
+            knowledge: v.knowledge || []
+          });
+        });
+      }
+      if(p.knowledge){
+        allKnowledge.push(...p.knowledge);
+      }
+    }
+  }
+  
+  // 如果还是没有数据，返回空计划
+  if(allVideos.length === 0 && allKnowledge.length === 0){
+    const result = [];
+    for(let d=1; d<=totalDays; d++){
+      result.push({day: d, title: `第 ${d} 天`, goal: "", range: "", videos: [], knowledge: []});
+    }
+    return result;
+  }
+  
+  // 均匀分配函数
+  function distributeEvenly(items, days){
+    const groups = [];
+    const total = items.length;
+    if(total === 0){
+      for(let d=0; d<days; d++) groups.push([]);
+      return groups;
+    }
+    
+    const base = Math.floor(total / days);
+    const remainder = total % days;
+    
+    let idx = 0;
+    for(let d=1; d<=days; d++){
+      const count = base + (d <= remainder ? 1 : 0);
+      const group = items.slice(idx, idx + count);
+      groups.push(group);
+      idx += count;
+    }
+    return groups;
+  }
+  
+  // 平均分配视频和知识点
+  const videoGroups = distributeEvenly(allVideos, totalDays);
+  const kpGroups = distributeEvenly(allKnowledge, totalDays);
+  
+  // 生成新的学习计划
+  const result = [];
+  for(let d=1; d<=totalDays; d++){
+    const vids = videoGroups[d - 1] || [];
+    const kps = kpGroups[d - 1] || [];
+    
+    // 生成标题
+    let title;
+    if(vids.length){
+      const pages = vids.map(v => v.page || '?').join('、');
+      title = `第 ${pages} 集`;
+      if(d === 1) title = `第 ${pages} 集（共 ${allVideos.length} 集，${totalDays} 天学完）`;
+    } else if(kps.length){
+      title = `第 ${d} 天（知识点复习）`;
+    } else {
+      title = `第 ${d} 天（休息/复习）`;
+    }
+    
+    // 合并视频中的知识点
+    const videoKnowledge = vids.reduce((s,v)=>{
+      if(v.knowledge && v.knowledge.length){
+        return s.concat(v.knowledge);
+      }
+      return s;
+    }, []);
+    
+    // 合并所有知识点（视频中的 + 独立的），去重
+    const allKps = [...videoKnowledge];
+    kps.forEach(k => {
+      if(allKps.indexOf(k) < 0) allKps.push(k);
+    });
+    
+    // 格式化视频
+    const formattedVideos = vids.map(v => ({
+      title: v.title || `视频`,
+      url: v.url || "",
+      knowledge: v.knowledge || []
+    }));
+    
+    result.push({
+      day: d,
+      title: title,
+      goal: vids.length ? `学习第 ${vids.map(v=>v.page||'?').join('、')} 集` : "",
+      range: "",
+      videos: formattedVideos,
+      knowledge: allKps
+    });
+  }
+  
+  return result;
 }
 
 // 返回软件列表

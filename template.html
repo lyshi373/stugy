@@ -428,8 +428,31 @@
 // 清理遗留 Service Worker 与缓存
 // 旧 SW 缓存了旧版 template.html，导致修改天数/自动总结等新功能不生效
 // 主动卸载所有遗留 SW 并清空缓存，刷新一次后即可加载最新代码
+// 每次更新代码时，请递增 CACHE_VERSION 常量
+const CACHE_VERSION = "v7"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
+  
+  // 检查缓存版本号是否变化
+  const lastVersion = localStorage.getItem('sw_cache_version');
+  const versionChanged = lastVersion !== CACHE_VERSION;
+  
+  // 如果版本号变化或首次运行，强制清理
+  if(versionChanged){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister(); });
+      if(window.caches){
+        caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+      }
+      // 更新版本号
+      localStorage.setItem('sw_cache_version', CACHE_VERSION);
+      // 清理后刷新一次
+      location.reload();
+    });
+    return;
+  }
+  
+  // 原有清理逻辑（兼容旧版本）
   navigator.serviceWorker.getRegistrations().then(function(regs){
     if(!regs.length) return;
     regs.forEach(function(r){ r.unregister(); });
@@ -979,96 +1002,101 @@ function loadDayContent(day){
   };
 }
 
-// 把已有学习内容（不管是内置还是自定义导入）均匀重分配到新天数
-// 数据源：优先从 _content 读（用户实际使用的内容），回退到 PRESET_PLANS
-// 空天（只有默认标题、无视频/知识点）会被跳过，不作为源
+// 把所有学习内容（视频和知识点）扁平化成列表，然后平均分配到新天数
+// 无论多少天，内容总量保持不变，只是每天分配的数量不同
 function redistributePlan(newDays){
   const contentKey = STORAGE_KEY + "_content";
   const savedContent = JSON.parse(localStorage.getItem(contentKey) || "{}");
   const preset = PRESET_PLANS[SOFTWARE_ID];
   
-  // 收集源数据：从 _content 读，回退到 PRESET_PLANS
-  const srcDays = [];
+  // 收集所有视频和知识点，扁平化成列表
+  const allVideos = [];
+  const allKnowledge = [];
+  const allGoals = [];
+  
+  // 从 _content 收集
   const existingDays = Object.keys(savedContent).map(Number).sort((a,b)=>a-b);
   const maxDay = Math.max(...existingDays, 0);
   
   for(let d=1; d<=maxDay; d++){
     let item = savedContent[d] || savedContent[String(d)];
-    // 如果 _content 里没有这一天，尝试从 PRESET_PLANS 拿
     if(!item || (!item.title && !item.goal && (!item.videos || !item.videos.length) && (!item.knowledge || !item.knowledge.length))){
       if(preset && preset[d]) item = preset[d];
     }
     if(!item) continue;
-    // 判断是否为空天（只有默认标题，无实质内容）
-    const hasContent = (item.videos && item.videos.length) || (item.knowledge && item.knowledge.length) || item.goal;
-    if(!hasContent) continue;
-    srcDays.push(JSON.parse(JSON.stringify(item)));
+    if(item.videos) allVideos.push(...item.videos);
+    if(item.knowledge) allKnowledge.push(...item.knowledge);
+    if(item.goal) allGoals.push(item.goal);
   }
   
-  // 如果 _content 和 PRESET_PLANS 都没有有效数据
-  if(!srcDays.length) return null;
-  
-  const oldDays = srcDays.length; // 有效源数据的天数
-  if(oldDays === newDays) return null; // 天数没变，无需重分配
-
-  // 拆分：newDays > oldDays
-  const result = {};
-  if(newDays >= oldDays){
-    let newDay = 1;
-    const perOld = newDays / oldDays;
-    srcDays.forEach((src, idx)=>{
-      let count = Math.round(perOld);
-      if(idx === oldDays - 1) count = newDays - (newDay - 1);
-      if(count < 1) count = 1;
-      const kps = src.knowledge || [];
-      const vids = src.videos || [];
-      if(count === 1 || kps.length === 0){
-        result[newDay] = {
-          title: src.title || `第 ${newDay} 天`,
-          goal: src.goal || "",
-          videos: vids,
-          knowledge: kps
-        };
-        newDay++;
-      } else {
-        const kpPer = Math.ceil(kps.length / count);
-        const vidPer = Math.ceil(vids.length / count);
-        for(let i=0; i<count; i++){
-          const kpSlice = kps.slice(i*kpPer, (i+1)*kpPer);
-          const vidSlice = vids.slice(i*vidPer, (i+1)*vidPer);
-          result[newDay] = {
-            title: count > 1 && i > 0 ? `${src.title}（${i+1}/${count}）` : (src.title || `第 ${newDay} 天`),
-            goal: i === 0 ? (src.goal || "") : "",
-            videos: vidSlice,
-            knowledge: kpSlice
-          };
-          newDay++;
-        }
-      }
-    });
-  } else {
-    // 压缩：newDays < oldDays
-    const perNew = oldDays / newDays;
-    for(let nd=1; nd<=newDays; nd++){
-      const startIdx = Math.floor((nd-1) * perNew);
-      let endIdx = Math.floor(nd * perNew);
-      if(nd === newDays) endIdx = oldDays;
-      const merged = {title:[], goal:[], videos:[], knowledge:[]};
-      for(let i=startIdx; i<endIdx; i++){
-        const src = srcDays[i];
-        if(src.title) merged.title.push(src.title);
-        if(src.goal) merged.goal.push(src.goal);
-        if(src.videos) merged.videos = merged.videos.concat(src.videos);
-        if(src.knowledge) merged.knowledge = merged.knowledge.concat(src.knowledge);
-      }
-      result[nd] = {
-        title: merged.title.join(" / ") || `第 ${nd} 天`,
-        goal: merged.goal.join("；"),
-        videos: merged.videos,
-        knowledge: merged.knowledge
-      };
+  // 如果 _content 没有有效数据，从 PRESET_PLANS 收集
+  if(allVideos.length === 0 && allKnowledge.length === 0 && preset){
+    for(let d in preset){
+      const item = preset[d];
+      if(item.videos) allVideos.push(...item.videos);
+      if(item.knowledge) allKnowledge.push(...item.knowledge);
+      if(item.goal) allGoals.push(item.goal);
     }
   }
+  
+  // 如果还是没有有效数据
+  if(allVideos.length === 0 && allKnowledge.length === 0) return null;
+  
+  // 平均分配函数
+  function distributeEvenly(items, days){
+    const groups = [];
+    const total = items.length;
+    if(total === 0) return groups;
+    
+    const base = Math.floor(total / days);
+    const remainder = total % days;
+    
+    let idx = 0;
+    for(let d=1; d<=days; d++){
+      // 前 remainder 天多分配一个
+      const count = base + (d <= remainder ? 1 : 0);
+      const group = items.slice(idx, idx + count);
+      groups.push(group);
+      idx += count;
+    }
+    return groups;
+  }
+  
+  // 平均分配视频和知识点
+  const videoGroups = distributeEvenly(allVideos, newDays);
+  const kpGroups = distributeEvenly(allKnowledge, newDays);
+  
+  // 生成新的学习计划
+  const result = {};
+  for(let nd=1; nd<=newDays; nd++){
+    const vids = videoGroups[nd - 1] || [];
+    const kps = kpGroups[nd - 1] || [];
+    
+    // 生成标题
+    const vidInfo = vids.length ? `第 ${vids.map(v=>v.page).join('、')} 集` : '休息';
+    const title = vids.length || kps.length ? 
+      (nd === 1 ? `第 ${vidInfo} （共 ${allVideos.length} 集，${newDays} 天学完）` : vidInfo) : 
+      `第 ${nd} 天（复习）`;
+    
+    // 生成学习目标
+    let goal = "";
+    if(nd === 1 && allGoals.length){
+      goal = allGoals[0]; // 第一天显示主要目标
+    } else if(vids.length === 0 && kps.length === 0){
+      goal = "本日休息或复习已学内容";
+    } else {
+      goal = `学习 ${vidInfo}`;
+      if(kps.length) goal += `，掌握 ${kps.length} 个知识点`;
+    }
+    
+    result[nd] = {
+      title: title,
+      goal: goal,
+      videos: vids,
+      knowledge: kps
+    };
+  }
+  
   return result;
 }
 function saveDayContent(day, content){
@@ -1116,8 +1144,62 @@ function renderCalendar(){
   document.getElementById("progressFill").style.width = pct+"%";
 }
 
+// ============ 视频控制 ============
+// 单 iframe 方案：始终只用一个 iframe，通过修改 src 来切换视频
+let currentVideoIdx = 0; // 当前播放的视频索引
+
+// 获取视频的 embed URL
+function getVideoEmbedUrl(v, autoplay){
+  const bv = v.bv || "";
+  const page = v.page || 1;
+  return `https://player.bilibili.com/player.html?bvid=${bv}&page=${page}&as_wide=1&high_quality=1&autoplay=${autoplay?'1':'0'}`;
+}
+
+// 停止视频播放（将 iframe 的 src 设为 blank）
+function stopAllVideos(){
+  const iframe = document.getElementById("main-video-iframe");
+  if(iframe){
+    iframe.src = "about:blank";
+  }
+}
+
+// 切换视频（修改 iframe 的 src）
+function switchVideo(targetIdx){
+  if(currentDay === 0) return;
+  const content = loadDayContent(currentDay);
+  if(!content.videos || !content.videos[targetIdx]) return;
+  
+  const v = content.videos[targetIdx];
+  const bv = v.bv;
+  if(!bv) return;
+  
+  const page = v.page || 1;
+  const title = v.title || `第 ${targetIdx+1} 个视频`;
+  const link = `https://www.bilibili.com/video/${bv}/?p=${page}`;
+  const embed = getVideoEmbedUrl(v, true); // autoplay
+  
+  currentVideoIdx = targetIdx;
+  
+  // 直接修改 iframe 的 src
+  const iframe = document.getElementById("main-video-iframe");
+  if(iframe){
+    iframe.src = embed;
+  }
+  
+  // 更新视频标题显示
+  const titleEl = document.getElementById("current-video-title");
+  if(titleEl){
+    titleEl.innerHTML = `▶ ${escapeHtml(title)}`;
+  }
+  const metaEl = document.getElementById("current-video-meta");
+  if(metaEl){
+    metaEl.innerHTML = `<a href="${link}" target="_blank">在B站原页观看 →</a>`;
+  }
+}
+
 // ============ 打开某天 ============
 function openDay(day){
+  stopAllVideos();
   currentDay = day;
   document.getElementById("modalDayLabel").textContent = `DAY ${day} · 共 ${TOTAL_DAYS} 天`;
   const content = loadDayContent(day);
@@ -1128,6 +1210,7 @@ function openDay(day){
 }
 
 function closeModal(){
+  stopAllVideos();
   document.getElementById("modalMask").classList.remove("show");
   document.body.style.overflow = "";
   renderCalendar(); // 刷新日历
@@ -1135,6 +1218,8 @@ function closeModal(){
 
 // ============ 渲染弹窗内容 ============
 function renderModalBody(day){
+  // 重新渲染前先停止所有视频播放
+  stopAllVideos();
   const content = loadDayContent(day);
   const data = loadData();
   const dayData = data[day] || {};
@@ -1291,26 +1376,16 @@ function renderLearnMode(day, content, dayData){
   // 视频区
   if(content.videos && content.videos.length){
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    html += `<div class="video-section"><h3>📺 学习视频</h3>`;
-    content.videos.forEach((v,i)=>{
-      const bv = v.bv || "";
-      const page = v.page || 1;
-      if(!bv){
-        const tipText = v.title || "视频BV号未设置，请切换到编辑模式填写";
-        html += `
-          <div class="video-item">
-            <div style="padding:20px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.8;">
-              ${escapeHtml(tipText)}
-            </div>
-          </div>
-        `;
-        return;
-      }
-      const link = `https://www.bilibili.com/video/${bv}/?p=${page}`;
-      const title = v.title || `第 ${i+1} 个视频`;
-
-      if(isMobile){
-        // 手机端：唤起B站App，不渲染iframe
+    html += `<div class="video-section"><h3>📺 学习视频（点击切换，仅播放一个）</h3>`;
+    
+    if(isMobile){
+      // 手机端：唤起B站App
+      content.videos.forEach((v,i)=>{
+        const bv = v.bv || "";
+        const page = v.page || 1;
+        if(!bv) return;
+        const link = `https://www.bilibili.com/video/${bv}/?p=${page}`;
+        const title = v.title || `第 ${i+1} 个视频`;
         html += `
           <div class="video-item">
             <div class="video-mobile-card">
@@ -1324,32 +1399,61 @@ function renderLearnMode(day, content, dayData){
             </div>
           </div>
         `;
-      } else {
-        // 电脑端：iframe内嵌播放
-        const embed = `https://player.bilibili.com/player.html?bvid=${bv}&page=${page}&as_wide=1&high_quality=1`;
+      });
+    } else {
+      // 电脑端：单 iframe 方案
+      const firstVideo = content.videos[0];
+      const firstBv = firstVideo.bv || "";
+      const firstPage = firstVideo.page || 1;
+      const firstTitle = firstVideo.title || `第 1 个视频`;
+      const firstLink = `https://www.bilibili.com/video/${firstBv}/?p=${firstPage}`;
+      const firstEmbed = firstBv ? getVideoEmbedUrl(firstVideo, false) : "";
+      
+      // 主播放区域（只有一个 iframe）
+      if(firstBv){
         html += `
-          <div class="video-item">
-            <iframe src="${embed}" scrolling="no" border="0" frameborder="no" framespacing="0"
+          <div class="video-item" style="margin-bottom:16px;">
+            <iframe id="main-video-iframe" src="${firstEmbed}" scrolling="no" border="0" frameborder="no" framespacing="0"
               allowfullscreen="true" referrerpolicy="no-referrer"
-              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              allow="fullscreen; encrypted-media; picture-in-picture"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
             <div class="video-meta">
-              <span class="video-title">${escapeHtml(title)}</span>
-              <a href="${link}" target="_blank">在B站原页观看 →</a>
+              <span class="video-title" id="current-video-title">▶ ${escapeHtml(firstTitle)}</span>
+              <span id="current-video-meta"><a href="${firstLink}" target="_blank">在B站原页观看 →</a></span>
             </div>
           </div>
         `;
-      }
-      // 知识点卡片（手机/电脑都显示）
-      if(content.knowledge && content.knowledge.length){
+      } else {
         html += `
-          <div class="kp-card">
-            <div class="kp-title">📘 本课知识点</div>
-            <ul>${content.knowledge.map(k=>`<li>${escapeHtml(k)}</li>`).join("")}</ul>
+          <div class="video-item" style="padding:20px;text-align:center;color:var(--text-dim);">
+            第一个视频未设置BV号，请在编辑模式填写
           </div>
         `;
       }
-    });
+      
+      // 其他视频切换按钮
+      if(content.videos.length > 1){
+        html += `<div style="margin-top:12px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">📋 视频列表（点击切换）</div>`;
+        html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">`;
+        content.videos.forEach((v,i)=>{
+          if(i === 0) return; // 第一个视频已经在主播放区
+          const bv = v.bv || "";
+          const page = v.page || 1;
+          const title = v.title || `第 ${i+1} 个视频`;
+          if(!bv){
+            html += `<div style="padding:10px;background:var(--bg);border-radius:6px;font-size:12px;color:var(--text-dim);">${escapeHtml(title)} (未设置)</div>`;
+            return;
+          }
+          html += `
+            <button class="tm-btn" style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(0,120,212,.1);border:1px solid rgba(0,120,212,.3);color:var(--accent);border-radius:6px;cursor:pointer;" onclick="switchVideo(${i})">
+              <div style="font-weight:500;">${escapeHtml(title)}</div>
+              <div style="font-size:11px;opacity:.7;">第 ${page} 集</div>
+            </button>
+          `;
+        });
+        html += `</div></div>`;
+      }
+    }
     html += `</div>`;
   }
 
