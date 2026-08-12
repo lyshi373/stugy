@@ -1203,7 +1203,7 @@ function loadCoreSoftware(){
   const list = loadSoftware();
   // 只保留 defaultSoftware 中的模块和用户自定义模块
   const coreIds = new Set(defaultSoftware.map(s=>s.id));
-  return list.filter(s => coreIds.has(s.id) || s.type === "custom" || !s.type);
+  return list.filter(s => coreIds.has(s.id) || s.type === "custom" || s.type === "template" || !s.type);
 }
 // 检查是否是内置模块（包括 defaultSoftware 和 extendedSoftware）
 const ALL_BUILTINS = [...defaultSoftware, ...extendedSoftware];
