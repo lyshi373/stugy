@@ -50,6 +50,7 @@
     font-size:13px;font-weight:700;flex-shrink:0;
   }
   .top-title span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .app-ver{font-size:11px;font-weight:400;color:rgba(255,255,255,.8);background:rgba(255,255,255,.15);padding:2px 7px;border-radius:6px;flex-shrink:0;}
   /* 内容区 */
   .content{flex:1;position:relative;overflow:hidden;}
   .view{display:none;}
@@ -879,7 +880,7 @@
 <div class="top-bar">
   <div class="top-bar-left">
     <button class="back-btn" id="backBtn" onclick="goBack()" aria-label="返回">←</button>
-    <div class="top-title"><span id="topTitle"><br></span></div>
+    <div class="top-title"><span id="topTitle"><br></span><span class="app-ver">v20260812</span></div>
   </div>
 </div>
 
@@ -909,8 +910,9 @@
           <h1><span class="logo">UG NX 12.0</span> 自学打卡日历 · 10天冲刺</h1>
           <div class="subtitle">基于 B站《UG12.0从入门到精通 25节课》教程，每天2-3节 + 笔记打卡，10天学完全部25节</div>
           <div class="progress-wrap">
-            <div class="progress-info">已完成 <b id="ugDoneCount">0</b> / 10 天</div>
+            <div class="progress-info">已完成 <b id="ugDoneCount">0</b> / <span id="ugTotalCount">10</span> 天</div>
             <div class="progress-bar"><div class="progress-fill" id="ugProgressFill"></div></div>
+            <button class="export-btn" id="ugChangeDaysBtn">⚙ 修改天数</button>
             <button class="export-btn" id="ugExportAllBtn">导出全部笔记(Word)</button>
             <button class="reset-btn" id="ugResetBtn">重置进度</button>
           </div>
@@ -934,6 +936,23 @@
         </div>
       </div>
       <div class="ug-toast" id="ugToast"></div>
+      <!-- UG修改学习天数弹窗（不依赖prompt，兼容手机端） -->
+      <div class="ug-modal-mask" id="ugDaysModal">
+        <div class="ug-modal" style="max-width:360px;">
+          <div class="ug-modal-header">
+            <h2>修改学习天数</h2>
+            <button class="ug-close-btn" id="ugDaysCloseBtn">×</button>
+          </div>
+          <div class="ug-modal-body" style="padding:20px;">
+            <p id="ugDaysModalInfo" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6;"></p>
+            <input type="number" id="ugDaysInput" min="1" max="365" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;box-sizing:border-box;">
+            <div style="margin-top:14px;display:flex;gap:8px;">
+              <button class="export-btn" id="ugDaysCancelBtn" style="flex:1;text-align:center;">取消</button>
+              <button class="checkin-btn" id="ugDaysApplyBtn" style="flex:1;">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1199,7 +1218,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v7"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v8"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1239,14 +1258,13 @@ const CACHE_VERSION = "v7"; // 与 sw.js 中的 CACHE_NAME 保持一致
 // 默认软件列表（3个核心模块）
 const defaultSoftware = [
   {id:"ug-nx12",name:"UG NX 12.0",desc:"西门子三维CAD/CAM",color:"#40A9FF",days:10,link:"#",type:"builtin"},
-  {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"./template.html?software=dji-action4",type:"template",iconLetter:"D"},
-  {id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,link:"./template.html?software=swimming",type:"template",iconLetter:"泳"}
+  {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"template.html?software=dji-action4",type:"template",iconLetter:"D"},
+  {id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,link:"template.html?software=swimming",type:"template",iconLetter:"泳"}
 ];
 
-// 扩展软件列表（可在知识点汇总页面查看）
 const extendedSoftware = [
-  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"./template.html?software=solidworks",type:"template",iconLetter:"S"},
-  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"./template.html?software=excel",type:"template",iconLetter:"E"}
+  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"template.html?software=solidworks",type:"template",iconLetter:"S"},
+  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"template.html?software=excel",type:"template",iconLetter:"E"}
 ];
 
 // 视图配置（UG打卡和知识点汇总已内嵌，不再用iframe）
@@ -1318,6 +1336,17 @@ function loadCoreSoftware(){
   const coreIds = new Set(defaultSoftware.map(s=>s.id));
   return list.filter(s => coreIds.has(s.id) || s.type === "custom" || !s.type);
 }
+// 检查是否是内置模块（包括 defaultSoftware 和 extendedSoftware）
+const ALL_BUILTINS = [...defaultSoftware, ...extendedSoftware];
+function isBuiltinSoftware(id){
+  return ALL_BUILTINS.some(d=>d.id===id);
+}
+function getBuiltinById(id){
+  return ALL_BUILTINS.find(d=>d.id===id);
+}
+function getBuiltinIds(){
+  return new Set(ALL_BUILTINS.map(d=>d.id));
+}
 function saveSoftware(list){localStorage.setItem("checkin_software_list", JSON.stringify(list));}
 
 // 获取进度（UG打卡数据存储key为 ug_nx12_checkin_data）
@@ -1325,7 +1354,8 @@ function getProgress(id){
   if(id==="ug-nx12"){
     const data = JSON.parse(localStorage.getItem("ug_nx12_checkin_data") || "{}");
     const done = Object.values(data).filter(d=>d.checked).length;
-    return {done, total:10};
+    const days = parseInt(localStorage.getItem("ug_nx12_total_days")) || 10;
+    return {done, total:days};
   }
   const data = JSON.parse(localStorage.getItem("checkin_"+id) || "{}");
   // 优先从软件列表获取天数，其次从_days键，最后默认10
@@ -1337,9 +1367,9 @@ function getProgress(id){
   return {done, total:days};
 }
 
-// 渲染软件列表（首页只显示核心模块）
+// 渲染软件列表（首页与知识点汇总使用同一数据源 loadSoftware，保持显示一致）
 function renderList(){
-  const list = loadCoreSoftware();
+  const list = loadSoftware();
   const grid = document.getElementById("softwareGrid");
   let html = "";
   list.forEach(sw=>{
@@ -1347,11 +1377,12 @@ function renderList(){
     const pct = prog.total>0 ? Math.round(prog.done/prog.total*100) : 0;
     const isBuiltin = sw.type==="builtin";
     const iconLetter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+    const href = isBuiltin ? "#" : sw.link;
     const clickAction = isBuiltin
       ? `onclick="event.preventDefault();switchView('ug');"`
-      : `onclick="event.preventDefault();openUgModal('${sw.link}','${sw.name}');"`;
+      : `onclick="event.preventDefault();window.location.href=this.href;"`;
     html += `
-      <a href="${sw.link}" class="sw-card" ${clickAction}>
+      <a href="${href}" class="sw-card" ${clickAction}>
         ${isBuiltin ? '<span class="sw-badge">完整</span>' : '<span class="sw-badge empty">自填</span>'}
         <div class="sw-card-head">
           <div class="sw-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${iconLetter}</div>
@@ -1367,7 +1398,7 @@ function renderList(){
           <div class="sw-progress-text">已完成 ${prog.done} / ${prog.total} 天（${pct}%）</div>
         </div>
         ${!isBuiltin ? `<div class="sw-actions">
-          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();openUgModal('${sw.link}','${sw.name}');">进入打卡</span>
+          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();window.location.href='${sw.link}';">进入打卡</span>
           <span class="sw-action-btn danger" onclick="event.preventDefault();event.stopPropagation();deleteSoftware('${sw.id}');">删除</span>
         </div>` : `<div class="sw-actions">
           <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();switchView('ug');">进入打卡</span>
@@ -1421,7 +1452,7 @@ function addSoftware(){
 }
 
 function deleteSoftware(id){
-  const isBuiltin = defaultSoftware.some(d=>d.id===id);
+  const isBuiltin = isBuiltinSoftware(id);
   const msg = isBuiltin
     ? "确定删除这个软件模块吗？将从列表中隐藏，并清除其打卡记录。"
     : "确定删除这个软件的打卡计划吗？可通过右下角「恢复」按钮找回打卡记录。";
@@ -1467,8 +1498,12 @@ function showToast(msg){
 // 自定义软件打卡弹窗
 function openUgModal(link,title){
   // 直接跳转到打卡模板页面（手机端file协议下iframe无法加载本地文件）
-  // URLSearchParams 会自动处理编码，无需手动编码整个查询串
-  window.location.href = link;
+  // 使用当前目录的相对路径，确保手机端能正确跳转
+  const currentPath = window.location.pathname;
+  const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+  const cleanLink = link.replace('./', '');
+  const absoluteUrl = window.location.protocol + '//' + window.location.host + currentDir + cleanLink;
+  window.location.href = absoluteUrl;
 }
 function closeUgModal(){
   // 兼容保留：直接跳转模式下无需关闭弹窗
@@ -1486,8 +1521,15 @@ document.getElementById("addModal").addEventListener("click",function(e){
 <script>
 /* ============ UG NX 12.0 打卡日历（内嵌版，函数加ug前缀避免冲突） ============ */
 const UG_STORAGE_KEY = "ug_nx12_checkin_data";
+const UG_DAYS_KEY = "ug_nx12_total_days";
+const UG_CONTENT_KEY = "ug_nx12_checkin_content";
+const UG_PLAN_VER_KEY = "ug_nx12_plan_version";
+const UG_PLAN_VERSION = "20260806-v2"; // 修改预填充内容时递增，触发用户端自动更新
 const UG_BASE_BVID = "BV1SYJc6MEWJ";
-const ugPlan = [
+let UG_TOTAL_DAYS = parseInt(localStorage.getItem(UG_DAYS_KEY) || "10");
+
+/* 原始UG预填充计划（10天固定版本，用作重分配的数据源） */
+const UG_ORIGINAL_PLAN = [
   {
     day:1,
     title:"Day1 · 软件入门基础（1.1-1.3）",
@@ -1917,6 +1959,169 @@ const ugPlan = [
   }
 ];
 
+/* 版本号检查：如果预填充内容更新了，自动重置用户的_content为新的计划（不影响打卡记录） */
+(function ugCheckPlanVersion(){
+  const lastVer = localStorage.getItem(UG_PLAN_VER_KEY);
+  if(lastVer !== UG_PLAN_VERSION){
+    // 只有_content从未被用户手动编辑过时才自动重置
+    const savedContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+    const hasUserEdit = Object.keys(savedContent).some(k=>{
+      const c = savedContent[k];
+      return c && (c._userEdited);
+    });
+    if(!hasUserEdit){
+      const freshContent = {};
+      UG_ORIGINAL_PLAN.forEach(p=>{ freshContent[p.day] = {title:p.title, desc:p.desc, goal:p.goal, videos:p.videos, points:p.points||[]}; });
+      localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(freshContent));
+    }
+    localStorage.setItem(UG_PLAN_VER_KEY, UG_PLAN_VERSION);
+  }
+})();
+
+/* 加载某天的内容（优先用用户编辑过的_content，否则用预填充计划） */
+function ugLoadDayContent(day){
+  const all = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+  const saved = all[day] || all[String(day)];
+  if(saved && (saved.title || saved.goal || (saved.videos && saved.videos.length) || (saved.points && saved.points.length))){
+    return Object.assign({videos:[],points:[],desc:""}, saved);
+  }
+  const orig = UG_ORIGINAL_PLAN.find(p=>p.day===day);
+  if(orig) return {title:orig.title, desc:orig.desc, goal:orig.goal, videos:orig.videos, points:orig.points||[]};
+  return {title:`第 ${day} 天`, desc:"", goal:"", videos:[], points:[]};
+}
+
+/* 保存某天的内容（写入_content，标记用户编辑） */
+function ugSaveDayContent(day, content){
+  const all = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+  all[day] = Object.assign({}, content, {_userEdited:true});
+  localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(all));
+}
+
+/* 生成当前UG打卡计划：按UG_TOTAL_DAYS从所有视频和知识点均匀分配 */
+let ugPlan = [];
+function ugBuildCurrentPlan(){
+  if(UG_TOTAL_DAYS === UG_ORIGINAL_PLAN.length){
+    // 天数没变，直接用原始10天结构（保证向后兼容显示）
+    ugPlan = UG_ORIGINAL_PLAN.map(p=>({
+      day: p.day, title: p.title, desc: p.desc, goal: p.goal, videos: p.videos, points: p.points||[]
+    }));
+    return ugPlan;
+  }
+  const redistributed = ugRedistributePlan(UG_TOTAL_DAYS);
+  if(!redistributed){
+    ugPlan = UG_ORIGINAL_PLAN.slice(0, Math.min(UG_TOTAL_DAYS, UG_ORIGINAL_PLAN.length));
+    return ugPlan;
+  }
+  ugPlan = [];
+  for(let d=1; d<=UG_TOTAL_DAYS; d++){
+    const item = redistributed[d] || redistributed[String(d)];
+    ugPlan.push({
+      day: d,
+      title: item.title || `第 ${d} 天`,
+      desc: item.goal || "",
+      goal: item.goal || "",
+      videos: item.videos || [],
+      points: item.knowledge || item.points || []
+    });
+  }
+  return ugPlan;
+}
+
+/* 把所有UG学习内容（视频和知识点）扁平化成列表，然后平均分配到新天数
+   无论多少天，内容总量保持不变，只是每天分配的数量不同 */
+function ugRedistributePlan(newDays){
+  const savedContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+  const preset = UG_ORIGINAL_PLAN;
+
+  // 收集所有视频和知识点，扁平化成列表
+  const allVideos = [];
+  const allKnowledge = [];
+  const allGoals = [];
+
+  // 先从 _content 收集（用户可能编辑过）
+  const existingDays = Object.keys(savedContent).map(Number).sort((a,b)=>a-b);
+  const maxDay = Math.max(...existingDays, preset.length, 0);
+
+  for(let d=1; d<=maxDay; d++){
+    let item = savedContent[d] || savedContent[String(d)];
+    const hasContent = item && (item.title || item.goal || (item.videos && item.videos.length) || (item.points && item.points.length) || (item.knowledge && item.knowledge.length));
+    if(!hasContent){
+      const p = preset.find(x=>x.day===d);
+      if(p) item = {videos:p.videos, points:p.points||[], goal:p.goal};
+    }
+    if(!item) continue;
+    if(item.videos) allVideos.push(...item.videos);
+    const kps = item.points || item.knowledge || [];
+    if(kps.length) allKnowledge.push(...kps);
+    if(item.goal) allGoals.push(item.goal);
+  }
+
+  // 如果_content没有有效数据，从UG_ORIGINAL_PLAN收集
+  if(allVideos.length === 0 && allKnowledge.length === 0){
+    for(let i=0; i<preset.length; i++){
+      const p = preset[i];
+      if(p.videos) allVideos.push(...p.videos);
+      if(p.points && p.points.length) allKnowledge.push(...p.points);
+      if(p.goal) allGoals.push(p.goal);
+    }
+  }
+
+  if(allVideos.length === 0 && allKnowledge.length === 0) return null;
+
+  // 均匀分配函数（与template.html中的distributeEvenly一致）
+  function distributeEvenly(items, days){
+    const groups = [];
+    const total = items.length;
+    if(total === 0){
+      for(let d=0; d<days; d++) groups.push([]);
+      return groups;
+    }
+    const base = Math.floor(total / days);
+    const remainder = total % days;
+    let idx = 0;
+    for(let d=1; d<=days; d++){
+      const count = base + (d <= remainder ? 1 : 0);
+      const group = items.slice(idx, idx + count);
+      groups.push(group);
+      idx += count;
+    }
+    return groups;
+  }
+
+  const videoGroups = distributeEvenly(allVideos, newDays);
+  const kpGroups = distributeEvenly(allKnowledge, newDays);
+
+  // 生成新的学习计划（key为天数，格式与redistributePlan一致）
+  const result = {};
+  for(let nd=1; nd<=newDays; nd++){
+    const vids = videoGroups[nd - 1] || [];
+    const kps = kpGroups[nd - 1] || [];
+
+    const pages = vids.map(v=>v.page||'?').filter((v,i,a)=>a.indexOf(v)===i).join('、');
+    let title;
+    if(vids.length){
+      title = nd === 1 ? `第 ${pages} 集（共 ${allVideos.length} 集，${newDays} 天学完）` : `第 ${pages} 集`;
+    } else if(kps.length){
+      title = `第 ${nd} 天（知识点复习，${kps.length} 条）`;
+    } else {
+      title = `第 ${nd} 天（休息/复习）`;
+    }
+    let goal = "";
+    if(nd === 1 && allGoals.length){
+      goal = allGoals[0];
+    } else if(vids.length === 0 && kps.length === 0){
+      goal = "本日休息或复习已学内容";
+    } else {
+      goal = `学习第 ${vids.map(v=>v.page||'?').join('、') || (kps.length + ' 条知识点')}`;
+    }
+    result[nd] = {title, goal, videos: vids, knowledge: kps};
+  }
+  return result;
+}
+
+/* 初始化构建当前计划 */
+ugBuildCurrentPlan();
+
 /* 工具函数 */
 function ugLoadData(){
   try{return JSON.parse(localStorage.getItem(UG_STORAGE_KEY)) || {};}
@@ -1970,7 +2175,9 @@ function ugRenderCalendar(){
     unlocked = isDone;
   });
   document.getElementById("ugDoneCount").textContent = doneCount;
-  document.getElementById("ugProgressFill").style.width = (doneCount/10*100) + "%";
+  const tcEl = document.getElementById("ugTotalCount");
+  if(tcEl) tcEl.textContent = String(UG_TOTAL_DAYS);
+  document.getElementById("ugProgressFill").style.width = (doneCount / UG_TOTAL_DAYS * 100) + "%";
 }
 /* UG打卡JS后续部分在下一个script块 */
 </script>
@@ -1985,7 +2192,7 @@ function ugOpenDayModal(day){
   if(!p) return;
   const data = ugLoadData();
   const dayData = data[day] || {};
-  document.getElementById("ugModalDayLabel").textContent = `DAY ${day} · 共 10 天`;
+  document.getElementById("ugModalDayLabel").textContent = `DAY ${day} · 共 ${UG_TOTAL_DAYS} 天`;
   document.getElementById("ugModalTitle").textContent = p.title;
 
   // 先停止所有可能存在的视频
@@ -2020,50 +2227,58 @@ function ugOpenDayModal(day){
         </div>`;
     });
   } else {
-    // 电脑端：单 iframe 方案
-    const firstVideo = p.videos[0];
-    const firstLink = ugGetVideoLink(firstVideo);
-    const firstLabel = ugGetVideoLabel(firstVideo);
-    const firstEmbed = ugGetEmbedUrl(firstVideo);
-    const firstKps = firstVideo.knowledge || [];
-    const firstKpHtml = firstKps.length ? `<div class="kp-card">
-      <div class="kp-title">📘 本课知识点预习/复习</div>
-      <ul>${firstKps.map(k=>`<li>${k}</li>`).join("")}</ul>
-    </div>` : "";
-    
-    // 主播放区域（只有一个 iframe）
-    videoHtml += `
-      <div class="video-item" style="margin-bottom:16px;">
-        <iframe id="ug-main-video-iframe" src="${firstEmbed}"
-          scrolling="no" border="0" frameborder="no" framespacing="0"
-          allowfullscreen="true"
-          referrerpolicy="no-referrer"
-          allow="fullscreen; encrypted-media; picture-in-picture"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
-        <div class="video-meta">
-          <div>
-            <div class="video-title" id="ug-current-video-title">▶ ${firstVideo.title}</div>
-            <div class="src">${firstLabel}</div>
-          </div>
-          <div id="ug-current-video-meta"><a href="${firstLink}" target="_blank">在 B站 原页观看 →</a></div>
-        </div>
-        <div id="ug-current-video-kp">${firstKpHtml}</div>
+    // 电脑端：单 iframe 方案（无视频时不渲染 iframe，仅显示知识点）
+    if(!p.videos || p.videos.length === 0){
+      videoHtml = `<div class="video-item" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:16px;text-align:center;color:var(--text-dim);">
+        <div style="font-size:24px;margin-bottom:6px;">🧘</div>
+        <div style="font-weight:500;">本日无视频 · 复习日 / 休息日</div>
+        <div style="font-size:12px;margin-top:4px;">请在下方学习要点中复习已学内容，写好笔记后仍可打卡</div>
       </div>`;
-    
-    // 其他视频切换按钮
-    if(p.videos.length > 1){
-      videoHtml += `<div style="margin-top:12px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">📋 视频列表（点击切换）</div>`;
-      videoHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">`;
-      p.videos.forEach((v,i)=>{
-        if(i === 0) return;
-        const label = ugGetVideoLabel(v);
-        videoHtml += `
-          <button style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(24,144,255,.1);border:1px solid rgba(24,144,255,.3);color:var(--primary,#1890FF);border-radius:6px;cursor:pointer;" onclick="ugSwitchVideo(${i}, ${day})">
-            <div style="font-weight:500;">${v.title}</div>
-            <div style="font-size:11px;opacity:.7;">${label}</div>
-          </button>`;
-      });
-      videoHtml += `</div></div>`;
+    } else {
+      const firstVideo = p.videos[0];
+      const firstLink = ugGetVideoLink(firstVideo);
+      const firstLabel = ugGetVideoLabel(firstVideo);
+      const firstEmbed = ugGetEmbedUrl(firstVideo);
+      const firstKps = firstVideo.knowledge || [];
+      const firstKpHtml = firstKps.length ? `<div class="kp-card">
+        <div class="kp-title">📘 本课知识点预习/复习</div>
+        <ul>${firstKps.map(k=>`<li>${k}</li>`).join("")}</ul>
+      </div>` : "";
+      
+      // 主播放区域（只有一个 iframe）
+      videoHtml += `
+        <div class="video-item" style="margin-bottom:16px;">
+          <iframe id="ug-main-video-iframe" src="${firstEmbed}"
+            scrolling="no" border="0" frameborder="no" framespacing="0"
+            allowfullscreen="true"
+            referrerpolicy="no-referrer"
+            allow="fullscreen; encrypted-media; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
+          <div class="video-meta">
+            <div>
+              <div class="video-title" id="ug-current-video-title">▶ ${firstVideo.title}</div>
+              <div class="src">${firstLabel}</div>
+            </div>
+            <div id="ug-current-video-meta"><a href="${firstLink}" target="_blank">在 B站 原页观看 →</a></div>
+          </div>
+          <div id="ug-current-video-kp">${firstKpHtml}</div>
+        </div>`;
+      
+      // 其他视频切换按钮
+      if(p.videos.length > 1){
+        videoHtml += `<div style="margin-top:12px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">📋 视频列表（点击切换）</div>`;
+        videoHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">`;
+        p.videos.forEach((v,i)=>{
+          if(i === 0) return;
+          const label = ugGetVideoLabel(v);
+          videoHtml += `
+            <button style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(24,144,255,.1);border:1px solid rgba(24,144,255,.3);color:var(--primary,#1890FF);border-radius:6px;cursor:pointer;" onclick="ugSwitchVideo(${i}, ${day})">
+              <div style="font-weight:500;">${v.title}</div>
+              <div style="font-size:11px;opacity:.7;">${label}</div>
+            </button>`;
+        });
+        videoHtml += `</div></div>`;
+      }
     }
   }
 
@@ -2086,7 +2301,7 @@ function ugOpenDayModal(day){
       <div class="extra-resources">
         <h4>本日学习视频所属教程</h4>
         <a href="https://www.bilibili.com/video/BV1SYJc6MEWJ/" target="_blank">UG12.0从入门到精通教程，25节课全面了解UG（本打卡计划基础教程）</a>
-        <div class="src">作者：软考教程官方 · 共25节 · 本日为该合集第 ${p.videos.map(v=>v.page).join('、')} P</div>
+        <div class="src">作者：软考教程官方 · 共25节${(p.videos && p.videos.length)?' · 本日为该合集第 ' + p.videos.map(v=>v.page).join('、') + ' P':''}</div>
         <h4 style="margin-top:10px;">延伸资源（学完25节后进阶）</h4>
         <a href="https://www.bilibili.com/video/BV1YnAkegEnx/" target="_blank">UG12.0全网最骚操作零基础入门到精通（109节，含装配全流程）</a>
         <a href="https://www.bilibili.com/video/av315225956" target="_blank">UG NX12.0 零基础入门教程（23节，另一老师讲解）</a>
@@ -2309,8 +2524,8 @@ function ugExportAllToWord(){
   const now = new Date().toLocaleString("zh-CN");
   const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>UG_NX12_学习笔记_全集</title></head><body>
     <h1 style="color:#40A9FF;text-align:center;">UG NX 12.0 自学打卡学习笔记</h1>
-    <h2 style="text-align:center;color:#333;">基于 B站《UG12.0从入门到精通 25节课》教程 · 10天打卡记录</h2>
-    <p style="text-align:center;color:#666;">导出时间：${now} | 打卡进度：${doneCount} / 10 天</p>
+    <h2 style="text-align:center;color:#333;">基于 B站《UG12.0从入门到精通 25节课》教程 · ${UG_TOTAL_DAYS}天打卡记录</h2>
+    <p style="text-align:center;color:#666;">导出时间：${now} | 打卡进度：${doneCount} / ${UG_TOTAL_DAYS} 天</p>
     <hr>
     <h3 style="color:#40A9FF;">目录与打卡进度</h3>
     <table style="border-collapse:collapse;width:100%;font-size:13px;">
@@ -2337,7 +2552,80 @@ function ugExportAllToWord(){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  ugShowToast(`已导出全部学习笔记（${doneCount}/10 天）为 Word 文档`);
+  ugShowToast(`已导出全部学习笔记（${doneCount}/${UG_TOTAL_DAYS} 天）为 Word 文档`);
+}
+
+/* ============ 修改UG学习总天数（页面内弹窗，不依赖prompt） ============ */
+function ugChangeTotalDays(){
+  const data = ugLoadData();
+  const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
+  const info = doneCount > 0
+    ? `当前已完成 ${doneCount} / ${UG_TOTAL_DAYS} 天。请输入新的总天数（1-365，不能小于已完成的 ${doneCount} 天）：`
+    : `当前进度 0 / ${UG_TOTAL_DAYS} 天。请输入新的总天数（1-365）：`;
+  const infoEl = document.getElementById("ugDaysModalInfo");
+  if(infoEl) infoEl.textContent = info;
+  const input = document.getElementById("ugDaysInput");
+  if(input){
+    input.value = UG_TOTAL_DAYS;
+    input.min = doneCount || 1;
+    setTimeout(()=>input.focus(), 100);
+  }
+  const modal = document.getElementById("ugDaysModal");
+  if(modal) modal.classList.add("active");
+}
+function ugCloseDaysModal(){
+  const modal = document.getElementById("ugDaysModal");
+  if(modal) modal.classList.remove("active");
+}
+function ugApplyDaysChange(){
+  const input = document.getElementById("ugDaysInput");
+  if(!input) return;
+  const v = parseInt(input.value);
+  const data = ugLoadData();
+  const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
+  if(!v || v < 1 || v > 365){ alert("请输入 1-365 之间的整数"); return; }
+  if(v < doneCount){ alert(`新天数 ${v} 小于已完成的 ${doneCount} 天，请输入不小于 ${doneCount} 的数字`); return; }
+
+  // 按新天数重新分配每天的视频/知识点（均匀分配策略）
+  const redistributed = ugRedistributePlan(v);
+  console.log("[UG改天数] 新天数=", v, "重分配结果=", redistributed ? "成功" : "无内容");
+  if(redistributed){
+    if(!confirm(`将按 ${v} 天重新分配每天的学习内容（视频/知识点）。\n已编辑的内容会被覆盖，但打卡记录和笔记会保留。继续？`)) return;
+    // 直接用重分配结果替换 UG_CONTENT_KEY（不影响打卡数据 UG_STORAGE_KEY）
+    const newContent = {};
+    Object.keys(redistributed).forEach(day=>{
+      const d = parseInt(day);
+      const item = redistributed[day];
+      newContent[d] = {title: item.title, goal: item.goal, desc: item.goal, videos: item.videos, points: item.knowledge || [], _userEdited: false};
+    });
+    localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(newContent));
+  } else if(v < UG_TOTAL_DAYS){
+    // 无预填充内容且天数减少：清除超出范围天的_content
+    const allContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+    Object.keys(allContent).forEach(k=>{ if(parseInt(k) > v) delete allContent[k]; });
+    localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(allContent));
+  }
+
+  // 天数减少时：清除超范围天的打卡记录
+  if(v < UG_TOTAL_DAYS){
+    const oldData = ugLoadData();
+    const newData = {};
+    Object.keys(oldData).forEach(k=>{ if(parseInt(k) <= v) newData[k] = oldData[k]; });
+    ugSaveData(newData);
+  }
+
+  UG_TOTAL_DAYS = v;
+  localStorage.setItem(UG_DAYS_KEY, String(UG_TOTAL_DAYS));
+  ugBuildCurrentPlan(); // 重建当前计划数组
+  ugRenderCalendar();
+  // 如果打卡弹窗打开且当天超范围则关闭
+  if(typeof ugCloseDayModal === 'function' && (v < 10 /* 简化判断 */)){
+    // 不强制关闭，交由用户操作
+  }
+  ugCloseDaysModal();
+  const tip = redistributed ? `✓ 已修改为 ${UG_TOTAL_DAYS} 天，并重新分配每天学习内容` : `✓ 已修改为 ${UG_TOTAL_DAYS} 天学习计划`;
+  ugShowToast(tip);
+  if(typeof renderList === 'function') renderList(); // 刷新首页进度条
 }
 
 /* UG打卡事件绑定 */
@@ -2347,11 +2635,19 @@ function ugExportAllToWord(){
     const mask = document.getElementById("ugModalMask");
     const resetBtn = document.getElementById("ugResetBtn");
     const exportAllBtn = document.getElementById("ugExportAllBtn");
+    const changeDaysBtn = document.getElementById("ugChangeDaysBtn");
+    const daysCloseBtn = document.getElementById("ugDaysCloseBtn");
+    const daysCancelBtn = document.getElementById("ugDaysCancelBtn");
+    const daysApplyBtn = document.getElementById("ugDaysApplyBtn");
+    const daysMask = document.getElementById("ugDaysModal");
     if(!closeBtn) return false;
     closeBtn.addEventListener("click",ugCloseDayModal);
     mask.addEventListener("click",e=>{ if(e.target.id === "ugModalMask") ugCloseDayModal(); });
     document.addEventListener("keydown",e=>{
-      if(e.key === "Escape" && mask.classList.contains("active")) ugCloseDayModal();
+      if(e.key === "Escape"){
+        if(mask.classList.contains("active")) ugCloseDayModal();
+        else if(daysMask && daysMask.classList.contains("active")) ugCloseDaysModal();
+      }
     });
     resetBtn.addEventListener("click",()=>{
       if(confirm("确定要重置所有打卡进度吗？此操作不可恢复。")){
@@ -2362,6 +2658,11 @@ function ugExportAllToWord(){
       }
     });
     exportAllBtn.addEventListener("click", ugExportAllToWord);
+    if(changeDaysBtn) changeDaysBtn.addEventListener("click", ugChangeTotalDays);
+    if(daysCloseBtn) daysCloseBtn.addEventListener("click", ugCloseDaysModal);
+    if(daysCancelBtn) daysCancelBtn.addEventListener("click", ugCloseDaysModal);
+    if(daysApplyBtn) daysApplyBtn.addEventListener("click", ugApplyDaysChange);
+    if(daysMask) daysMask.addEventListener("click", e=>{ if(e.target.id === "ugDaysModal") ugCloseDaysModal(); });
     return true;
   }
   if(document.readyState === "loading"){
@@ -2614,7 +2915,7 @@ function kpRenderSoftwareList(){
 function kpRestoreSoftware(id){
   const sw = getModuleMetaById(id);
   const name = sw?sw.name:id;
-  const isBuiltin = defaultSoftware.some(d=>d.id===id);
+  const isBuiltin = isBuiltinSoftware(id);
   if(isBuiltin){
     // 内置模块：从隐藏列表移除即可，defaultSoftware 会自动恢复
     const hidden = JSON.parse(localStorage.getItem("checkin_hidden_builtin") || "[]");
@@ -3244,7 +3545,7 @@ function kpGoCheckin(){
   if(sw.id === "ug-nx12"){
     switchView('ug');
   } else if(sw.link){
-    window.open(sw.link, '_blank');
+    window.location.href = sw.link;
   }
 }
 

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 学习打卡中心 - 打包脚本
-运行后会生成 学习打卡中心.zip，包含所有项目文件
+运行后会生成 学习打卡中心_日期.zip，包含所有项目文件
 """
 import os
 import zipfile
+from datetime import datetime
 
 # 当前目录
 base_dir = os.path.dirname(os.path.abspath(__file__))
-zip_name = "学习打卡中心.zip"
+today = datetime.now().strftime("%Y%m%d")
+zip_name = f"学习打卡中心_{today}.zip"
 zip_path = os.path.join(base_dir, zip_name)
 
 # 要打包的文件
