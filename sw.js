@@ -1,7 +1,7 @@
 // UG NX 12.0 打卡日历 - Service Worker
 // 实现离线访问和APP化
 
-const CACHE_NAME = "study-checkin-center-v8";
+const CACHE_NAME = "study-checkin-center-v9";
 const CACHE_FILES = [
   "./",
   "./index.html",

@@ -1218,7 +1218,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v8"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v9"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1353,7 +1353,7 @@ function saveSoftware(list){localStorage.setItem("checkin_software_list", JSON.s
 function getProgress(id){
   if(id==="ug-nx12"){
     const data = JSON.parse(localStorage.getItem("ug_nx12_checkin_data") || "{}");
-    const done = Object.values(data).filter(d=>d.checked).length;
+    const done = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
     const days = parseInt(localStorage.getItem("ug_nx12_total_days")) || 10;
     return {done, total:days};
   }
@@ -1414,7 +1414,7 @@ function renderList(){
     </div>
   `;
   grid.innerHTML = html;
-  updateRestoreFloatingBtn();
+  if(typeof updateRestoreFloatingBtn==='function') updateRestoreFloatingBtn();
 }
 
 function openModal(){
@@ -1440,7 +1440,8 @@ function addSoftware(){
   const desc = document.getElementById("swDesc").value.trim();
   const days = parseInt(document.getElementById("swDays").value) || 10;
   if(days<1 || days>365){alert("打卡天数需在1-365之间");return}
-  const color = document.querySelector(".color-opt.selected")?.dataset.color || "#40A9FF";
+  const colorEl = document.querySelector(".color-opt.selected");
+  const color = (colorEl && colorEl.dataset && colorEl.dataset.color) || "#40A9FF";
   const id = "custom_" + Date.now();
   const letter = name.charAt(0).toUpperCase();
   const list = loadSoftware();
@@ -1512,7 +1513,6 @@ function closeUgModal(){
 
 // 初始化：先统一视图状态（标题、返回按钮显隐），再渲染首页列表
 switchView('home');
-updateRestoreFloatingBtn();
 document.getElementById("addModal").addEventListener("click",function(e){
   if(e.target===this) closeModal();
 });
@@ -2932,7 +2932,7 @@ function kpRestoreSoftware(id){
       // 1. 写回软件列表（防止 id 重复）
       const currentList = loadSoftware();
       if(!currentList.some(s=>s.id===id)){
-        const softToSave = {...backup};
+        const softToSave = Object.assign({}, backup);
         // 去掉备份里的非软件字段（checkin/days/content/deletedAt）
         delete softToSave.checkin;
         delete softToSave.days;
@@ -2984,7 +2984,7 @@ function getCustomRecycleBinWithMeta(){
   const result = [];
   Object.keys(customRecycleBin).forEach(id => {
     if(permanentlyDeleted.indexOf(id) < 0){
-      result.push({id, ...customRecycleBin[id], isCustom: true});
+      result.push(Object.assign({}, customRecycleBin[id], {id: id, isCustom: true}));
     }
   });
   return result;
@@ -3040,7 +3040,7 @@ function getVisibleHidden(){
 // 按 ID 获取任意模块的完整元信息（内置 + 自定义）
 function getModuleMetaById(id){
   const builtin = defaultSoftware.find(d=>d.id===id);
-  if(builtin) return {...builtin, isCustom: false};
+  if(builtin) return Object.assign({}, builtin, {isCustom: false});
   const custom = getCustomRecycleBinWithMeta().find(s=>s.id===id);
   if(custom) return custom;
   return null;
@@ -3555,6 +3555,8 @@ function kpExpandAll(){
     b.style.display = b.style.display==="none"?"":"none";
   });
 }
+// 初始化：此时所有函数已定义完成，更新恢复按钮状态
+if(typeof updateRestoreFloatingBtn==='function') updateRestoreFloatingBtn();
 </script>
 </body>
 </html>
