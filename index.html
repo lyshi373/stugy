@@ -890,12 +890,6 @@
   <!-- 首页视图 -->
   <div class="view active" id="view-home">
     <div class="home-view">
-      <div class="tip-box">
-        <b>📌 使用说明</b><br>
-        • 点击下方软件卡片进入对应的打卡日历<br>
-        • 点击「添加新软件」可创建新的打卡计划<br>
-        • 底部导航栏可切换不同功能页面
-      </div>
       <div class="section-title">我的学习</div>
       <div class="software-grid" id="softwareGrid"></div>
     </div>
@@ -999,127 +993,6 @@
     </div>
   </div>
 
-  <!-- 下载到手机视图 -->
-  <div class="view" id="view-install">
-    <div class="dl-app">
-      <div class="dl-header">
-        <h1 style="font-size: 22px">📱 使用指南</h1>
-        <div class="sub">把学习打卡中心装到手机上，像 APP 一样使用</div>
-      </div>
-      <div class="dl-main">
-
-        <div class="dl-card">
-          <h2>📥 第一步：获取项目文件</h2>
-          <div class="dl-step">
-            <div class="dl-step-num">1</div>
-            <div class="dl-step-content">
-              <div class="dl-step-title">在电脑上找到项目文件夹</div>
-              <div class="dl-step-desc">
-                文件夹中包含 <b>index.html</b>、<b>manifest.json</b>、<b>sw.js</b> 等文件
-              </div>
-            </div>
-          </div>
-          <div class="dl-step">
-            <div class="dl-step-num">2</div>
-            <div class="dl-step-content">
-              <div class="dl-step-title">把整个文件夹传到手机</div>
-              <div class="dl-step-desc">
-                方式任选：<b>微信文件传输助手</b> / <b>QQ</b> / <b>数据线</b> / <b>蓝牙</b><br>
-                建议打包成 ZIP 再传，手机上解压
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="dl-card">
-          <h2>📲 第二步：添加到主屏幕</h2>
-          <div class="dl-tip">
-            <b>前提：</b>手机需安装 <b>bilibili App</b>（看视频用），浏览器用 <b>Edge</b> 或 <b>Safari</b>
-          </div>
-
-          <div class="dl-tabs">
-            <div class="dl-tab active" onclick="dlSwitchTab(event,'android')">Android 安卓</div>
-            <div class="dl-tab" onclick="dlSwitchTab(event,'ios')">iPhone 苹果</div>
-          </div>
-
-          <div id="dl-android" class="dl-platform active">
-            <div class="dl-step">
-              <div class="dl-step-num">1</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">用 <b>Edge 浏览器</b>打开 index.html</div>
-                <div class="dl-step-desc">在手机文件管理器中找到传过来的 index.html，用 Edge 打开</div>
-              </div>
-            </div>
-            <div class="dl-step">
-              <div class="dl-step-num">2</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">点击浏览器底部「⋯」菜单</div>
-                <div class="dl-step-desc">Edge 底部中间或右上角的三点按钮</div>
-              </div>
-            </div>
-            <div class="dl-step">
-              <div class="dl-step-num">3</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">选择「添加到手机」</div>
-                <div class="dl-step-desc">部分版本叫「添加到主屏幕」或「安装此应用」</div>
-              </div>
-            </div>
-            <div class="dl-tip">
-              ✅ <b>完成！</b>手机桌面出现「学」字图标，点击直接全屏使用
-            </div>
-          </div>
-
-          <div id="dl-ios" class="dl-platform">
-            <div class="dl-step">
-              <div class="dl-step-num">1</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">用 <b>Safari 浏览器</b>打开 index.html</div>
-                <div class="dl-step-desc">必须用 Safari，其他浏览器无法添加到主屏幕</div>
-              </div>
-            </div>
-            <div class="dl-step">
-              <div class="dl-step-num">2</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">点击底部「分享」按钮</div>
-                <div class="dl-step-desc">Safari 底部中间的方框+向上箭头图标</div>
-              </div>
-            </div>
-            <div class="dl-step">
-              <div class="dl-step-num">3</div>
-              <div class="dl-step-content">
-                <div class="dl-step-title">选择「添加到主屏幕」</div>
-                <div class="dl-step-desc">向下滚动菜单找到该选项，点击</div>
-              </div>
-            </div>
-            <div class="dl-tip">
-              ✅ <b>完成！</b>手机桌面出现「学」字图标，点击直接全屏使用
-            </div>
-          </div>
-        </div>
-
-        <div class="dl-card">
-          <h2>❓ 常见问题</h2>
-          <div class="dl-tip">
-            <b>Q：视频能看吗？</b><br>
-            手机端自动显示「📱 在B站App中打开」按钮，点击直接唤起 bilibili App 播放，只要手机装有 bilibili App 即可
-          </div>
-          <div class="dl-tip">
-            <b>Q：断网能用吗？</b><br>
-            ✅ 打卡记录、知识点、笔记功能离线可用<br>
-            ❌ B站视频需要联网播放
-          </div>
-          <div class="dl-tip">
-            <b>Q：换手机怎么办？</b><br>
-            把项目文件夹传到新手机，重新打开 index.html 即可。打卡记录保存在各自手机浏览器中，不互通
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-</div>
-
 <!-- 底部导航栏 -->
 <div class="bottom-nav">
   <button class="nav-item active" data-view="home" onclick="switchView('home')">
@@ -1127,9 +1000,6 @@
   </button>
   <button class="nav-item" data-view="knowledge" onclick="switchView('knowledge')">
     <span class="nav-icon">📘</span><span>知识点</span>
-  </button>
-  <button class="nav-item" data-view="install" onclick="switchView('install')">
-    <span class="nav-icon">📱</span><span>使用</span>
   </button>
 </div>
 
@@ -1272,7 +1142,6 @@ const viewConfig = {
   home:{title:"学习打卡中心"},
   ug:{title:"UG NX 12.0 打卡"},
   knowledge:{title:"知识点汇总"},
-  install:{title:"使用指南"}
 };
 
 // 切换视图
