@@ -82,6 +82,18 @@ docs-project-progress-Y9iLEE/
 
 ## 🔧 最近修改历史
 
+### 2026-08-13 首页显示与访问控制（隐藏模块 + Excel 密码锁）
+
+**需求**：主界面隐藏 UG / DJI / SolidWorks；Excel 需输入密码才能使用。
+
+**改动**
+- `index.html` 顶部新增 `HIDDEN_SOFTWARE_IDS`（隐藏 ug-nx12 / dji-action4 / solidworks）与 `PASSWORD_SOFTWARE`（Excel 密码锁，默认 123456，可修改后重新部署）
+- `loadSoftware()` 统一过滤隐藏模块，首页与知识点列表保持一致
+- 首页 Excel 卡片与知识点入口均弹出密码框（`openPwdModal` / `kpCheckAccess`），密码正确才可进入
+- `EXTENDED_SOFTWARE_IDS` 加入 excel，保证新设备首次打开也显示 Excel
+- 「如何新增」常见问题补充隐藏/密码说明；README 更新访问控制说明
+- `sw.js` 缓存升级到 v12；`tools/test_app.js` 新增 8 条断言，44/44 通过
+
 ### 2026-08-13 「如何新增」页新增「添加到手机屏幕」教程
 
 **需求**：教用户把学习打卡网站添加到手机主屏幕，像 App 一样使用。

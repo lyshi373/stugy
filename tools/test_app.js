@@ -184,7 +184,8 @@ globalThis.__T = {
   KPB_PRESETS, kpPlan,
   renderList, switchView,
   kpRenderSoftwareList, kpShowKnowledge, kpGetPlanData, kpGoCheckin,
-  kpCurrentSoftware: () => kpCurrentSoftware
+  kpCurrentSoftware: () => kpCurrentSoftware,
+  openPwdModal, confirmPwd, kpCheckAccess, loadSoftware
 };
 globalThis.__setKp = function(sw){ kpCurrentSoftware = sw; };
 `;
@@ -218,11 +219,15 @@ check("BUILTIN_VIEWS 含 ug/digital", !!T().BUILTIN_VIEWS["ug"] && !!T().BUILTIN
 check("defaultSoftware 顺序", JSON.stringify(T().defaultSoftware.map((s) => s.id)) === JSON.stringify(["ug-nx12", "dji-action4", "swimming"]));
 check("extendedSoftware 含数字化", T().extendedSoftware[0].name === "数字化入门");
 
-/* 首页卡片路由 */
+/* 首页卡片路由与访问控制 */
 app("__T.renderList()");
 const homeHtml = app("document.getElementById('softwareGrid').innerHTML");
 check("首页数字化卡片路由到 switchView('digital')", homeHtml.includes("switchView('digital')"), "digital");
-check("首页UG卡片路由到 switchView('ug')", homeHtml.includes("switchView('ug')"));
+check("首页不显示隐藏模块(UG/DJI/SolidWorks)", !homeHtml.includes("switchView('ug')") && !homeHtml.includes("dji-action4") && !homeHtml.includes("solidworks"));
+check("首页Excel卡片带密码校验", homeHtml.includes("openPwdModal('excel'"));
+const visibleList = app("__T.loadSoftware()");
+check("loadSoftware 已过滤隐藏模块", !visibleList.some(s=>["ug-nx12","dji-action4","solidworks"].includes(s.id)), visibleList.map(s=>s.id).join(","));
+check("Excel 仍在列表", !!visibleList.find(s=>s.id==="excel"));
 
 /* 如何新增项目 说明页 */
 check("viewConfig 含 guide", !!T().viewConfig["guide"]);
@@ -260,6 +265,21 @@ app("document.getElementById('dgCheckinBtn').click()");
 const dgData = JSON.parse(app("localStorage.getItem('checkin_digital-basics')"));
 check("数字化打卡写入", dgData && dgData[1] && dgData[1].checked === true);
 
+/* Excel 密码访问 */
+app("__T.openPwdModal('excel','template.html?software=excel')");
+check("Excel 密码弹窗打开", app("document.getElementById('pwdModal').classList.contains('show')"));
+app("document.getElementById('pwdInput').value = 'wrong'");
+app("__T.confirmPwd()");
+check("Excel 密码错误不跳转", app("location.href") === "file:///C:/app/index.html");
+app("document.getElementById('pwdInput').value = '123456'");
+app("__T.confirmPwd()");
+check("Excel 密码正确后跳转", app("location.href") === "template.html?software=excel");
+app("__T.kpCheckAccess('excel')");
+check("Excel 知识点入口也走密码", app("document.getElementById('pwdModal').classList.contains('show')"));
+app("document.getElementById('pwdInput').value = '123456'");
+app("__T.confirmPwd()");
+check("Excel 知识点密码通过", app("__T.kpCurrentSoftware()").id === "excel");
+
 /* UG 打卡视图（回归） */
 app("__T.switchView('ug')");
 check("UG日历10天", app("document.getElementById('ugCalendarGrid').children.length") === 10);
@@ -285,7 +305,7 @@ const swimDetail = app("document.getElementById('kpContent').innerHTML");
 check("游泳知识点详情正常", swimDetail.includes("下水前热身"));
 app("__T.kpShowKnowledge('ug-nx12')");
 const ugKp = app("document.getElementById('kpContent').innerHTML");
-check("UG知识点详情正常", ugKp.includes("UG NX 12.0 启动方式"));
+check("隐藏模块UG不可从知识点页打开", ugKp.includes("下水前热身") && !ugKp.includes("UG NX 12.0 启动方式"));
 
 /* 重分配逻辑（UG 改 20 天） */
 const rd = app("__T.BI.redistribute(__T.BUILTIN_CONFIGS['ug-nx12'], 20)");

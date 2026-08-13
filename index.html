@@ -1187,6 +1187,10 @@
         <p>用浏览器打开在线网址后：安卓（Chrome/Edge）点右上角「⋮」→「添加到主屏幕」；苹果（Safari）点底部「分享」→「添加到主屏幕」。详见上方「📱 添加到手机屏幕」教程。</p>
       </details>
       <details>
+        <summary>为什么首页没有 UG / DJI / SolidWorks？Excel 为什么需要密码？</summary>
+        <p>部分模块已按管理需要隐藏或加密：UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。需要恢复或修改密码时，请联系管理员调整 index.html 顶部的 HIDDEN_SOFTWARE_IDS 与 PASSWORD_SOFTWARE 配置。</p>
+      </details>
+      <details>
         <summary>想删掉或重做这个项目？</summary>
         <p>首页卡片上点「删除」会移到回收站，可到右下角「恢复」按钮找回。</p>
       </details>
@@ -1248,6 +1252,26 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" onclick="addSoftware()">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 访问密码弹窗（如 Excel） -->
+<div class="modal-mask" id="pwdModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔒 输入访问密码</h3>
+      <button class="modal-close" onclick="closePwdModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <p id="pwdHint" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6;"></p>
+        <input type="password" class="form-input" id="pwdInput" placeholder="请输入密码">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePwdModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmPwd()">进入</button>
     </div>
   </div>
 </div>
@@ -1338,7 +1362,15 @@ const CACHE_VERSION = "v10"; // 与 sw.js 中的 CACHE_NAME 保持一致
 // 想调整首页展示顺序 / 是否展示，改下面两个 ID 数组即可
 // ================================================================
 const DEFAULT_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "swimming"]; // 首页核心模块
-const EXTENDED_SOFTWARE_IDS = ["digital-basics"];                    // 扩展模块（同样展示）
+const EXTENDED_SOFTWARE_IDS = ["digital-basics", "excel"];           // 扩展模块（同样展示）
+
+// ============ 显示与访问控制 ============
+// 主界面隐藏的软件：不出现在首页与知识点列表（模块文件仍保留，改回 [] 即可恢复显示）
+const HIDDEN_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "solidworks"];
+// 需要密码才能进入的软件（点击卡片/知识点时校验；默认密码 123456，可在此修改后重新部署）
+const PASSWORD_SOFTWARE = {
+  "excel": { password: "123456", hint: "Excel 模块受密码保护，密码请联系管理员获取" }
+};
 
 function softwareFromModule(m){
   return {
@@ -1439,6 +1471,8 @@ function loadSoftware(){
   // 过滤掉已被隐藏/彻底删除的内置项（防止残留）
   const allHidden = [...hidden, ...permanentlyDeleted];
   list = list.filter(s=>allHidden.indexOf(s.id) < 0);
+  // 主界面隐藏指定模块（如 UG/DJI/SolidWorks）
+  list = list.filter(s=>HIDDEN_SOFTWARE_IDS.indexOf(s.id) < 0);
   return list;
 }
 // 加载核心模块（首页使用，不含扩展软件）
@@ -1491,9 +1525,14 @@ function renderList(){
     const targetView = isBuiltin ? (BUILTIN_VIEWS_BY_ID[sw.id] || null) : null;
     const iconLetter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
     const href = targetView ? "#" : sw.link;
-    const clickAction = targetView
-      ? `onclick="event.preventDefault();switchView('${targetView}');"`
-      : `onclick="event.preventDefault();window.location.href=this.href;"`;
+    let clickAction;
+    if(PASSWORD_SOFTWARE[sw.id]){
+      clickAction = `onclick="event.preventDefault();openPwdModal('${sw.id}','${sw.link}');"`;
+    } else if(targetView){
+      clickAction = `onclick="event.preventDefault();switchView('${targetView}');"`;
+    } else {
+      clickAction = `onclick="event.preventDefault();window.location.href=this.href;"`;
+    }
     html += `
       <a href="${href}" class="sw-card" ${clickAction}>
         ${isBuiltin ? '<span class="sw-badge">完整</span>' : '<span class="sw-badge empty">自填</span>'}
@@ -1539,6 +1578,46 @@ function openModal(){
   setTimeout(()=>document.getElementById("swName").focus(),100);
 }
 function closeModal(){document.getElementById("addModal").classList.remove("show");}
+
+/* ============ 访问控制（密码锁） ============ */
+let _pwdTarget = null;
+function openSoftware(id, href){
+  const targetView = BUILTIN_VIEWS_BY_ID[id];
+  if(targetView){ switchView(targetView); }
+  else if(href){ window.location.href = href; }
+}
+function openPwdModal(id, href, toKnowledge){
+  _pwdTarget = {id, href, knowledge: !!toKnowledge};
+  document.getElementById("pwdInput").value = "";
+  document.getElementById("pwdHint").textContent = (PASSWORD_SOFTWARE[id] && PASSWORD_SOFTWARE[id].hint) || "请输入访问密码";
+  document.getElementById("pwdModal").classList.add("show");
+  setTimeout(()=>document.getElementById("pwdInput").focus(),100);
+}
+function closePwdModal(){
+  document.getElementById("pwdModal").classList.remove("show");
+  _pwdTarget = null;
+}
+function confirmPwd(){
+  const t = _pwdTarget;
+  if(!t) return;
+  const cfg = PASSWORD_SOFTWARE[t.id];
+  if(!cfg) return;
+  const v = document.getElementById("pwdInput").value.trim();
+  if(v === cfg.password){
+    closePwdModal();
+    if(t.knowledge){ kpShowKnowledge(t.id); }
+    else { openSoftware(t.id, t.href); }
+  } else {
+    alert("密码错误，无法进入");
+  }
+}
+function kpCheckAccess(id){
+  if(PASSWORD_SOFTWARE[id]){
+    openPwdModal(id, "", true);
+  } else {
+    kpShowKnowledge(id);
+  }
+}
 
 document.getElementById("colorPicker").addEventListener("click",function(e){
   if(e.target.classList.contains("color-opt")){
@@ -2329,7 +2408,7 @@ function kpRenderSoftwareList(){
       const prog = (typeof getProgress==='function') ? getProgress(sw.id) : {done:0,total:sw.days||10};
       const pct = prog.total>0 ? Math.round(prog.done/prog.total*100) : 0;
       return `
-        <div class="kp-sw-card" onclick="kpShowKnowledge('${sw.id}')">
+        <div class="kp-sw-card" onclick="kpCheckAccess('${sw.id}')">
           <div class="kp-sw-card-head">
             <div class="kp-sw-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${iconLetter}</div>
             <div class="kp-sw-info">
