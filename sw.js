@@ -1,7 +1,7 @@
 // 学习打卡中心 - Service Worker
 // 实现离线访问和APP化
 
-const CACHE_NAME = "study-checkin-center-v16";
+const CACHE_NAME = "study-checkin-center-v17";
 const CACHE_FILES = [
   "./",
   "./index.html",
