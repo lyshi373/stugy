@@ -224,10 +224,11 @@ check("extendedSoftware 含数字化", T().extendedSoftware[0].name === "数字�
 app("__T.renderList()");
 const homeHtml = app("document.getElementById('softwareGrid').innerHTML");
 check("首页数字化卡片路由到 switchView('digital')", homeHtml.includes("switchView('digital')"), "digital");
-check("首页不显示隐藏模块(UG/DJI/SolidWorks)", !homeHtml.includes("switchView('ug')") && !homeHtml.includes("dji-action4") && !homeHtml.includes("solidworks"));
+check("首页不显示隐藏模块(UG/DJI)", !homeHtml.includes("switchView('ug')") && !homeHtml.includes("dji-action4"));
 check("首页Excel卡片带密码校验", homeHtml.includes("openPwdModal('excel'"));
 const visibleList = app("__T.loadSoftware()");
-check("loadSoftware 已过滤隐藏模块", !visibleList.some(s=>["ug-nx12","dji-action4","solidworks"].includes(s.id)), visibleList.map(s=>s.id).join(","));
+check("loadSoftware 已过滤隐藏模块", !visibleList.some(s=>["ug-nx12","dji-action4"].includes(s.id)), visibleList.map(s=>s.id).join(","));
+check("SolidWorks 恢复默认显示", !!visibleList.find(s=>s.id==="solidworks"));
 check("Excel 仍在列表", !!visibleList.find(s=>s.id==="excel"));
 
 /* 如何新增项目 说明页 */
@@ -272,12 +273,12 @@ check("Excel 密码弹窗打开", app("document.getElementById('pwdModal').class
 app("document.getElementById('pwdInput').value = 'wrong'");
 app("__T.confirmPwd()");
 check("Excel 密码错误不跳转", app("location.href") === "file:///C:/app/index.html");
-app("document.getElementById('pwdInput').value = '123456'");
+app("document.getElementById('pwdInput').value = '161114'");
 app("__T.confirmPwd()");
 check("Excel 密码正确后跳转", app("location.href") === "template.html?software=excel");
 app("__T.kpCheckAccess('excel')");
 check("Excel 知识点入口也走密码", app("document.getElementById('pwdModal').classList.contains('show')"));
-app("document.getElementById('pwdInput').value = '123456'");
+app("document.getElementById('pwdInput').value = '161114'");
 app("__T.confirmPwd()");
 check("Excel 知识点密码通过", app("__T.kpCurrentSoftware()").id === "excel");
 
@@ -298,7 +299,7 @@ check("显示默认隐藏模块需密码", app("document.getElementById('pwdModa
 app("document.getElementById('pwdInput').value = 'wrong'");
 app("__T.confirmPwd()");
 check("密码错误默认隐藏模块不显示", !app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
-app("document.getElementById('pwdInput').value = '123456'");
+app("document.getElementById('pwdInput').value = '161114'");
 app("__T.confirmPwd()");
 check("密码正确后默认隐藏模块显示", app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
 
@@ -325,9 +326,9 @@ check("数字化知识点统计", kpStats.includes("10") && kpStats.includes("20
 app("__T.kpShowKnowledge('swimming')");
 const swimDetail = app("document.getElementById('kpContent').innerHTML");
 check("游泳知识点详情正常", swimDetail.includes("下水前热身"));
-app("__T.kpShowKnowledge('solidworks')");
+app("__T.kpShowKnowledge('dji-action4')");
 const swKp = app("document.getElementById('kpContent').innerHTML");
-check("隐藏模块SolidWorks不可从知识点页打开", swKp.includes("下水前热身") && !swKp.includes("SolidWorks"));
+check("隐藏模块DJI不可从知识点页打开", swKp.includes("下水前热身") && !swKp.includes("DJI"));
 
 /* 重分配逻辑（UG 改 20 天） */
 const rd = app("__T.BI.redistribute(__T.BUILTIN_CONFIGS['ug-nx12'], 20)");

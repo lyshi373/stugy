@@ -1195,12 +1195,12 @@
         <p>用浏览器打开在线网址后：安卓（Chrome/Edge）点右上角「⋮」→「添加到主屏幕」；苹果（Safari）点底部「分享」→「添加到主屏幕」。详见上方「📱 添加到手机屏幕」教程。</p>
       </details>
       <details>
-        <summary>为什么首页没有 UG / DJI / SolidWorks？Excel 为什么需要密码？</summary>
-        <p>UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。想恢复 UG / DJI / SolidWorks：点左下角「👁 已隐藏」→「默认隐藏模块」→ 点「显示」，此时需输入<b>管理密码</b>（默认 123456，可在 index.html 顶部 ADMIN_PASSWORD 修改）。</p>
+        <summary>为什么首页没有 UG / DJI？Excel 为什么需要密码？</summary>
+        <p>UG、DJI 默认不显示，Excel 需输入密码进入。想恢复 UG / DJI：点左下角「👁 已隐藏」→「默认隐藏模块」→ 点「显示」，此时需输入<b>管理密码</b>（可在 index.html 顶部 ADMIN_PASSWORD 修改）。</p>
       </details>
       <details>
         <summary>如何隐藏某个软件？如何恢复显示？</summary>
-        <p>首页软件卡片上点「隐藏」，该软件就不在列表显示，左下角出现「👁 已隐藏」按钮，点开可逐个或全部恢复。UG、DJI、SolidWorks 属于默认隐藏，恢复显示需联系管理员调整配置。</p>
+        <p>首页软件卡片上点「隐藏」，该软件就不在列表显示，左下角出现「👁 已隐藏」按钮，点开可逐个或全部恢复。UG、DJI 属于默认隐藏，恢复显示需输入管理密码。</p>
       </details>
       <details>
         <summary>想删掉或重做这个项目？</summary>
@@ -1355,7 +1355,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v15"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v16"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1401,13 +1401,13 @@ const EXTENDED_SOFTWARE_IDS = ["digital-basics", "excel", "solidworks"]; // 扩�
 
 // ============ 显示与访问控制 ============
 // 主界面隐藏的软件：不出现在首页与知识点列表（模块文件仍保留，改回 [] 即可恢复显示）
-const HIDDEN_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "solidworks"];
+const HIDDEN_SOFTWARE_IDS = ["ug-nx12", "dji-action4"];
 // 需要密码才能进入的软件（点击卡片/知识点时校验；默认密码 123456，可在此修改后重新部署）
 const PASSWORD_SOFTWARE = {
-  "excel": { password: "123456", hint: "Excel 模块受密码保护，密码请联系管理员获取" }
+  "excel": { password: "161114", hint: "Excel 模块受密码保护，密码请联系管理员获取" }
 };
 // 显示「默认隐藏模块」（UG/DJI/SolidWorks）需要输入的管理密码，可在此修改
-const ADMIN_PASSWORD = "123456";
+const ADMIN_PASSWORD = "161114";
 
 function softwareFromModule(m){
   return {
@@ -1671,7 +1671,7 @@ function confirmPwd(){
 function openAdminPwd(action){
   _pwdTarget = {admin: true, action: action};
   document.getElementById("pwdInput").value = "";
-  document.getElementById("pwdHint").textContent = "该操作需要管理密码（默认 123456，可联系管理员获取）";
+  document.getElementById("pwdHint").textContent = "该操作需要管理密码，请向管理员获取";
   document.getElementById("pwdModal").classList.add("show");
   setTimeout(()=>document.getElementById("pwdInput").focus(),100);
 }

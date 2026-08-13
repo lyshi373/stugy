@@ -82,6 +82,14 @@ docs-project-progress-Y9iLEE/
 
 ## 🔧 最近修改历史
 
+### 2026-08-13 默认隐藏范围调整 + 密码统一为 161114
+
+**改动**
+- 默认隐藏模块调整为只有 UG / DJI（`HIDDEN_SOFTWARE_IDS = ["ug-nx12", "dji-action4"]`），SolidWorks 恢复默认显示
+- Excel 密码与显示默认隐藏模块的管理密码统一为 `161114`（`PASSWORD_SOFTWARE.excel.password` 与 `ADMIN_PASSWORD`）
+- FAQ / README 同步更新；缓存版本升至 v16
+- `tools/test_app.js` 密码断言更新为 161114，并新增「SolidWorks 恢复默认显示」断言，52/52 通过
+
 ### 2026-08-13 显示默认隐藏模块需管理密码
 
 **需求**：防止他人随意恢复默认隐藏的 UG / DJI / SolidWorks，显示操作需要密码。

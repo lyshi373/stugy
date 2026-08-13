@@ -437,7 +437,7 @@
 // 旧 SW 缓存了旧版 template.html，导致修改天数/自动总结等新功能不生效
 // 主动卸载所有遗留 SW 并清空缓存，刷新一次后即可加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v15"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v16"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
