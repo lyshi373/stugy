@@ -229,7 +229,7 @@ check("viewConfig 含 guide", !!T().viewConfig["guide"]);
 app("__T.switchView('guide')");
 check("view-guide 激活", app("document.getElementById('view-guide').classList.contains('active')"));
 const guideHtml = read("index.html");
-check("guide 页含新增步骤说明", guideHtml.includes("如何新增学习项目") && guideHtml.includes("B站合集快速分配") && guideHtml.includes("添加新软件"));
+check("guide 页含新增步骤说明", guideHtml.includes("如何新增学习项目") && guideHtml.includes("B站合集快速分配") && guideHtml.includes("添加新软件") && guideHtml.includes("添加到主屏幕"));
 app("__T.switchView('home')");
 
 /* 数字化打卡视图 */
