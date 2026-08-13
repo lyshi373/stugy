@@ -294,7 +294,13 @@ app("__T.openHiddenPanel()");
 const hiddenPanelHtml = app("document.getElementById('hiddenPanelList').innerHTML");
 check("已隐藏面板列出默认隐藏模块", hiddenPanelHtml.includes("默认隐藏模块") && hiddenPanelHtml.includes("UG NX 12.0"));
 app("__T.showDefaultModule('ug-nx12')");
-check("默认隐藏模块显示后回到列表", app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
+check("显示默认隐藏模块需密码", app("document.getElementById('pwdModal').classList.contains('show')"));
+app("document.getElementById('pwdInput').value = 'wrong'");
+app("__T.confirmPwd()");
+check("密码错误默认隐藏模块不显示", !app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
+app("document.getElementById('pwdInput').value = '123456'");
+app("__T.confirmPwd()");
+check("密码正确后默认隐藏模块显示", app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
 
 /* UG 打卡视图（回归） */
 app("__T.switchView('ug')");

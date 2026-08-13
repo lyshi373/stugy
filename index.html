@@ -1196,7 +1196,7 @@
       </details>
       <details>
         <summary>为什么首页没有 UG / DJI / SolidWorks？Excel 为什么需要密码？</summary>
-        <p>UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。想恢复 UG / DJI / SolidWorks：点左下角「👁 已隐藏」→「默认隐藏模块」→ 点「显示」即可；修改 Excel 密码需联系管理员调整 index.html 顶部的 PASSWORD_SOFTWARE。</p>
+        <p>UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。想恢复 UG / DJI / SolidWorks：点左下角「👁 已隐藏」→「默认隐藏模块」→ 点「显示」，此时需输入<b>管理密码</b>（默认 123456，可在 index.html 顶部 ADMIN_PASSWORD 修改）。</p>
       </details>
       <details>
         <summary>如何隐藏某个软件？如何恢复显示？</summary>
@@ -1355,7 +1355,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v14"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v15"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1406,6 +1406,8 @@ const HIDDEN_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "solidworks"];
 const PASSWORD_SOFTWARE = {
   "excel": { password: "123456", hint: "Excel 模块受密码保护，密码请联系管理员获取" }
 };
+// 显示「默认隐藏模块」（UG/DJI/SolidWorks）需要输入的管理密码，可在此修改
+const ADMIN_PASSWORD = "123456";
 
 function softwareFromModule(m){
   return {
@@ -1645,6 +1647,16 @@ function closePwdModal(){
 function confirmPwd(){
   const t = _pwdTarget;
   if(!t) return;
+  if(t.admin){
+    const v = document.getElementById("pwdInput").value.trim();
+    if(v === ADMIN_PASSWORD){
+      closePwdModal();
+      t.action();
+    } else {
+      alert("密码错误，无法操作");
+    }
+    return;
+  }
   const cfg = PASSWORD_SOFTWARE[t.id];
   if(!cfg) return;
   const v = document.getElementById("pwdInput").value.trim();
@@ -1655,6 +1667,13 @@ function confirmPwd(){
   } else {
     alert("密码错误，无法进入");
   }
+}
+function openAdminPwd(action){
+  _pwdTarget = {admin: true, action: action};
+  document.getElementById("pwdInput").value = "";
+  document.getElementById("pwdHint").textContent = "该操作需要管理密码（默认 123456，可联系管理员获取）";
+  document.getElementById("pwdModal").classList.add("show");
+  setTimeout(()=>document.getElementById("pwdInput").focus(),100);
 }
 function kpCheckAccess(id){
   if(PASSWORD_SOFTWARE[id]){
@@ -1777,6 +1796,9 @@ function openHiddenPanel(){
   document.getElementById("hiddenPanelMask").classList.add("show");
 }
 function showDefaultModule(id){
+  openAdminPwd(()=>doShowDefaultModule(id));
+}
+function doShowDefaultModule(id){
   const uiShow = loadUiShow();
   if(uiShow.indexOf(id) < 0) uiShow.push(id);
   localStorage.setItem("checkin_ui_show", JSON.stringify(uiShow));
@@ -1797,6 +1819,9 @@ function unhideSoftware(id){
   showToast("已恢复显示");
 }
 function unhideAll(){
+  openAdminPwd(()=>doUnhideAll());
+}
+function doUnhideAll(){
   localStorage.setItem("checkin_hidden_ui", "[]");
   const uiShow = loadUiShow();
   HIDDEN_SOFTWARE_IDS.forEach(id=>{
