@@ -211,9 +211,16 @@
   .restore-fab:active{transform:translateY(0);}
   .restore-fab-icon{font-size:14px;}
   .restore-fab-label{white-space:nowrap;}
+  .restore-fab.hidden-fab{
+    left:16px;right:auto;
+    background:linear-gradient(135deg,#3b82f6,#2563eb);
+    box-shadow:0 4px 12px rgba(59,130,246,.35);
+  }
+  .restore-fab.hidden-fab:hover{box-shadow:0 6px 16px rgba(59,130,246,.45);}
   @media(max-width:640px){
     .restore-fab{padding:6px 10px;font-size:11px;bottom:64px;}
     .restore-fab-label{max-width:60px;overflow:hidden;text-overflow:ellipsis;}
+    .restore-fab.hidden-fab{left:10px;}
   }
   /* 恢复面板 */
   .restore-panel-mask{
@@ -1191,6 +1198,10 @@
         <p>部分模块已按管理需要隐藏或加密：UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。需要恢复或修改密码时，请联系管理员调整 index.html 顶部的 HIDDEN_SOFTWARE_IDS 与 PASSWORD_SOFTWARE 配置。</p>
       </details>
       <details>
+        <summary>如何隐藏某个软件？如何恢复显示？</summary>
+        <p>首页软件卡片上点「隐藏」，该软件就不在列表显示，左下角出现「👁 已隐藏」按钮，点开可逐个或全部恢复。UG、DJI、SolidWorks 属于默认隐藏，恢复显示需联系管理员调整配置。</p>
+      </details>
+      <details>
         <summary>想删掉或重做这个项目？</summary>
         <p>首页卡片上点「删除」会移到回收站，可到右下角「恢复」按钮找回。</p>
       </details>
@@ -1278,6 +1289,12 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 已隐藏软件 悬浮按钮 -->
+<div class="restore-fab hidden-fab" id="hiddenFab" style="display:none;" onclick="openHiddenPanel()" title="已隐藏的软件">
+  <span class="restore-fab-icon">👁</span>
+  <span class="restore-fab-label" id="hiddenFabLabel">已隐藏</span>
+</div>
+
 <!-- 恢复已删除模块 悬浮按钮 -->
 <div class="restore-fab" id="restoreFab" style="display:none;" onclick="openRestorePanel()" title="恢复或彻底删除已隐藏的模块">
   <span class="restore-fab-icon">↩</span>
@@ -1306,6 +1323,23 @@
   </div>
 </div>
 
+<!-- 已隐藏软件面板 -->
+<div class="restore-panel-mask" id="hiddenPanelMask" onclick="closeHiddenPanel(event)">
+  <div class="restore-panel" onclick="event.stopPropagation()">
+    <div class="restore-panel-header">
+      <div>
+        <div class="restore-panel-title">👁 已隐藏的软件</div>
+        <div class="restore-panel-sub">选择「显示」即可恢复到首页列表</div>
+      </div>
+      <button class="restore-panel-close" onclick="closeHiddenPanel()">×</button>
+    </div>
+    <div class="restore-panel-list" id="hiddenPanelList"></div>
+    <div class="restore-panel-footer">
+      <button class="restore-btn restore-btn-danger" onclick="unhideAll()">全部显示</button>
+    </div>
+  </div>
+</div>
+
 <!-- 自定义软件打卡全屏弹窗（与UG打卡视图区分） -->
 <div class="custom-sw-modal" id="customSwModal">
   <div class="custom-sw-modal-header">
@@ -1320,7 +1354,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v10"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v13"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1453,7 +1487,7 @@ function goBack(){
 }
 
 // 加载软件列表
-function loadSoftware(){
+function loadSoftwareRaw(){
   let list = JSON.parse(localStorage.getItem("checkin_software_list") || "null");
   if(!list){list = [...defaultSoftware, ...extendedSoftware];localStorage.setItem("checkin_software_list", JSON.stringify(list));}
   // 已隐藏的内置模块（用户主动删除的），不再自动恢复
@@ -1471,9 +1505,13 @@ function loadSoftware(){
   // 过滤掉已被隐藏/彻底删除的内置项（防止残留）
   const allHidden = [...hidden, ...permanentlyDeleted];
   list = list.filter(s=>allHidden.indexOf(s.id) < 0);
-  // 主界面隐藏指定模块（如 UG/DJI/SolidWorks）
-  list = list.filter(s=>HIDDEN_SOFTWARE_IDS.indexOf(s.id) < 0);
   return list;
+}
+// 对外可用的软件列表：过滤代码级隐藏（HIDDEN_SOFTWARE_IDS）+ 用户界面隐藏（checkin_hidden_ui）
+function loadSoftware(){
+  const list = loadSoftwareRaw();
+  const uiHidden = JSON.parse(localStorage.getItem("checkin_hidden_ui") || "[]");
+  return list.filter(s=>HIDDEN_SOFTWARE_IDS.indexOf(s.id) < 0 && uiHidden.indexOf(s.id) < 0);
 }
 // 加载核心模块（首页使用，不含扩展软件）
 function loadCoreSoftware(){
@@ -1551,9 +1589,11 @@ function renderList(){
         </div>
         ${!isBuiltin ? `<div class="sw-actions">
           <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();window.location.href='${sw.link}';">进入打卡</span>
+          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();hideSoftware('${sw.id}');">隐藏</span>
           <span class="sw-action-btn danger" onclick="event.preventDefault();event.stopPropagation();deleteSoftware('${sw.id}');">删除</span>
         </div>` : `<div class="sw-actions">
           <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();switchView('${targetView||'ug'}');">进入打卡</span>
+          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();hideSoftware('${sw.id}');">隐藏</span>
         </div>`}
       </a>
     `;
@@ -1567,6 +1607,7 @@ function renderList(){
   `;
   grid.innerHTML = html;
   if(typeof updateRestoreFloatingBtn==='function') updateRestoreFloatingBtn();
+  if(typeof updateHiddenFab==='function') updateHiddenFab();
 }
 
 function openModal(){
@@ -1679,6 +1720,67 @@ function deleteSoftware(id){
   showToast("已移到回收站，可通过右下角「恢复」按钮找回");
   renderList();
   updateRestoreFloatingBtn();
+}
+
+/* ============ 隐藏 / 恢复软件（界面操作） ============ */
+function loadUiHidden(){ return JSON.parse(localStorage.getItem("checkin_hidden_ui") || "[]"); }
+function updateHiddenFab(){
+  const fab = document.getElementById("hiddenFab");
+  if(fab) fab.style.display = loadUiHidden().length > 0 ? "" : "none";
+}
+function hideSoftware(id){
+  const sw = loadSoftwareRaw().find(s=>s.id===id);
+  if(!sw) return;
+  if(!confirm(`确定隐藏「${sw.name}」吗？\n隐藏后不出现在首页，可通过左下角「👁 已隐藏」按钮恢复。`)) return;
+  const uiHidden = loadUiHidden();
+  if(uiHidden.indexOf(id) < 0) uiHidden.push(id);
+  localStorage.setItem("checkin_hidden_ui", JSON.stringify(uiHidden));
+  showToast(`「${sw.name}」已隐藏`);
+  renderList();
+  updateHiddenFab();
+}
+function openHiddenPanel(){
+  const uiHidden = loadUiHidden();
+  const list = loadSoftwareRaw().filter(s=>uiHidden.indexOf(s.id) >= 0);
+  const box = document.getElementById("hiddenPanelList");
+  if(list.length === 0){
+    box.innerHTML = '<div class="restore-panel-empty">暂无已隐藏的软件</div>';
+  } else {
+    box.innerHTML = list.map(sw=>{
+      const letter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+      const tagText = sw.type==="builtin" ? "（内置）" : "（自定义）";
+      return `
+        <div class="restore-item">
+          <div class="restore-item-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${letter}</div>
+          <div class="restore-item-info">
+            <div class="restore-item-name">${sw.name}${tagText}</div>
+            <div class="restore-item-desc">${sw.desc||''} · ${sw.days||10}天计划</div>
+          </div>
+          <div class="restore-item-actions">
+            <button class="restore-btn restore-btn-primary" onclick="unhideSoftware('${sw.id}')">显示</button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+  document.getElementById("hiddenPanelMask").classList.add("show");
+}
+function closeHiddenPanel(e){
+  if(e && e.target !== document.getElementById("hiddenPanelMask")) return;
+  document.getElementById("hiddenPanelMask").classList.remove("show");
+}
+function unhideSoftware(id){
+  localStorage.setItem("checkin_hidden_ui", JSON.stringify(loadUiHidden().filter(x=>x!==id)));
+  renderList();
+  updateHiddenFab();
+  openHiddenPanel();
+  showToast("已恢复显示");
+}
+function unhideAll(){
+  localStorage.setItem("checkin_hidden_ui", "[]");
+  renderList();
+  updateHiddenFab();
+  closeHiddenPanel();
+  showToast("已全部恢复显示");
 }
 
 function showToast(msg){

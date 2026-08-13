@@ -185,7 +185,8 @@ globalThis.__T = {
   renderList, switchView,
   kpRenderSoftwareList, kpShowKnowledge, kpGetPlanData, kpGoCheckin,
   kpCurrentSoftware: () => kpCurrentSoftware,
-  openPwdModal, confirmPwd, kpCheckAccess, loadSoftware
+  openPwdModal, confirmPwd, kpCheckAccess, loadSoftware,
+  hideSoftware, unhideSoftware
 };
 globalThis.__setKp = function(sw){ kpCurrentSoftware = sw; };
 `;
@@ -279,6 +280,14 @@ check("Excel 知识点入口也走密码", app("document.getElementById('pwdModa
 app("document.getElementById('pwdInput').value = '123456'");
 app("__T.confirmPwd()");
 check("Excel 知识点密码通过", app("__T.kpCurrentSoftware()").id === "excel");
+
+/* 隐藏 / 恢复软件（界面操作） */
+app("__T.hideSoftware('swimming')");
+const visAfterHide = app("__T.loadSoftware()");
+check("UI隐藏后软件不在列表", !visAfterHide.some(s=>s.id==="swimming"), visAfterHide.map(s=>s.id).join(","));
+check("隐藏FAB出现", app("document.getElementById('hiddenFab').style.display") === "");
+app("__T.unhideSoftware('swimming')");
+check("恢复显示后回到列表", app("__T.loadSoftware()").some(s=>s.id==="swimming"));
 
 /* UG 打卡视图（回归） */
 app("__T.switchView('ug')");
