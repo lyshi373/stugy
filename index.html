@@ -879,6 +879,43 @@
     .dl-app .dl-step-title{font-size:13px;}
     .dl-app .dl-step-desc{font-size:12px;}
   }
+  /* 新增项目指南页 */
+  .guide-app{padding:18px 14px 96px;max-width:720px;margin:0 auto;}
+  .guide-header{text-align:center;margin-bottom:20px;}
+  .guide-header h1{font-size:20px;color:var(--text);margin-bottom:6px;}
+  .guide-header .sub{font-size:13px;color:var(--text-dim);line-height:1.6;}
+  .guide-card{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;margin-bottom:16px;
+  }
+  .guide-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:14px;}
+  .guide-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}
+  .guide-step:last-child{margin-bottom:0;}
+  .guide-step-num{
+    flex-shrink:0;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--primary),var(--accent));
+    color:#fff;font-weight:600;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .guide-step-title{font-size:14px;color:var(--text);font-weight:600;margin-bottom:3px;}
+  .guide-step-desc{font-size:13px;color:var(--text-dim);line-height:1.7;}
+  .guide-step-desc b{color:var(--accent);}
+  .guide-faq details{
+    border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;
+    background:#fafafa;
+  }
+  .guide-faq summary{
+    font-size:13px;color:var(--text);font-weight:600;cursor:pointer;
+    list-style:none;display:flex;align-items:center;gap:6px;
+  }
+  .guide-faq summary::before{content:'❓';font-size:12px;}
+  .guide-faq p{margin:8px 0 0;font-size:12px;color:var(--text-dim);line-height:1.7;}
+  @media(max-width:640px){
+    .guide-app{padding:14px 12px 90px;}
+    .guide-card{padding:16px;}
+    .guide-step-title{font-size:13px;}
+    .guide-step-desc{font-size:12px;}
+  }
 </style>
 </head>
 <body>
@@ -1055,6 +1092,76 @@
     </div>
   </div>
 
+<!-- 新增项目指南视图 -->
+<div class="view" id="view-guide">
+  <div class="guide-app">
+    <div class="guide-header">
+      <h1>📖 如何新增学习项目</h1>
+      <div class="sub">跟着下面 4 步，用首页已有的「＋ 添加新软件」入口创建自己的打卡项目</div>
+    </div>
+
+    <div class="guide-card">
+      <div class="guide-card-title">📖 操作步骤</div>
+      <div class="guide-step">
+        <div class="guide-step-num">1</div>
+        <div>
+          <div class="guide-step-title">回到首页，点「＋ 添加新软件」卡片</div>
+          <div class="guide-step-desc">首页「我的学习」下方有一个<b>虚线加号卡片</b>，点击后会弹出「添加新软件」窗口。</div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="guide-step-num">2</div>
+        <div>
+          <div class="guide-step-title">填写项目信息并创建</div>
+          <div class="guide-step-desc">填写<b>软件名称</b>（必填）、简短描述、打卡总天数、主题色，点「创建」。创建后首页会出现新的项目卡片。</div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="guide-step-num">3</div>
+        <div>
+          <div class="guide-step-title">点进项目，在「编辑模式」填 B站 视频</div>
+          <div class="guide-step-desc">点新卡片进入打卡页，切换到<b>编辑模式</b>。每天可填写<b>BV 号、分P、视频标题、学习目标、知识点</b>；更省事的是用「<b>B站合集快速分配</b>」——填合集 BV 号和总集数，一键按天排好视频。</div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="guide-step-num">4</div>
+        <div>
+          <div class="guide-step-title">切回「学习模式」，开始打卡</div>
+          <div class="guide-step-desc">每天：看视频 → 写笔记（30字）→ 完成打卡，按顺序解锁下一天。手机端会自动显示「在B站App中打开」按钮。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card guide-faq">
+      <div class="guide-card-title">💡 常见问题</div>
+      <details>
+        <summary>BV号在哪里找？</summary>
+        <p>B站 视频页地址栏里形如 https://www.bilibili.com/video/BV1SYJc6MEWJ/ ，BV 开头的那一段就是。手机 App 里点「分享 → 复制链接」也能看到。</p>
+      </details>
+      <details>
+        <summary>不填BV号可以创建吗？</summary>
+        <p>可以。创建后会进入编辑页，在「学习视频」里逐天填写 BV 号和分P；也可以用编辑页里的「B站合集快速分配」一键按天排好。</p>
+      </details>
+      <details>
+        <summary>分P是什么意思？</summary>
+        <p>合集视频里的每一集。填总P数时，数一下这个合集一共有多少集；如果不足天数，后面几天会留空，可自行调整。</p>
+      </details>
+      <details>
+        <summary>手机上看不了内嵌视频怎么办？</summary>
+        <p>手机端会自动显示「在B站App中打开」按钮，点一下直接唤起已安装的 B站 App 播放，无需服务器。</p>
+      </details>
+      <details>
+        <summary>想删掉或重做这个项目？</summary>
+        <p>首页卡片上点「删除」会移到回收站，可到右下角「恢复」按钮找回。</p>
+      </details>
+    </div>
+
+    <div class="tip-box">
+      <b>提示：</b>像 UG、数字化入门这样的内置模块已经配好视频和知识点，直接打卡即可；自定义项目适合你自己想学的课程。内置模块的内容如需调整，由管理员在 <b>modules/</b> 目录中修改。
+    </div>
+  </div>
+</div>
+
 <!-- 底部导航栏 -->
 <div class="bottom-nav">
   <button class="nav-item active" data-view="home" onclick="switchView('home')">
@@ -1062,6 +1169,9 @@
   </button>
   <button class="nav-item" data-view="knowledge" onclick="switchView('knowledge')">
     <span class="nav-icon">📘</span><span>知识点</span>
+  </button>
+  <button class="nav-item" data-view="guide" onclick="switchView('guide')">
+    <span class="nav-icon">📖</span><span>如何新增</span>
   </button>
 </div>
 
@@ -1235,6 +1345,7 @@ Object.keys(BUILTIN_CONFIGS).forEach(id=>{
 const viewConfig = {
   home:{title:"学习打卡中心"},
   knowledge:{title:"知识点汇总"},
+  guide:{title:"新增项目"},
 };
 Object.keys(BUILTIN_VIEWS).forEach(vn=>{ viewConfig[vn] = {title: BUILTIN_VIEWS[vn].name + " 打卡"}; });
 
