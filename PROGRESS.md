@@ -20,6 +20,9 @@ docs-project-progress-Y9iLEE/
 │   └── swimming.js     # 游泳（模板打卡）
 ├── manifest.json       # PWA 应用配置
 ├── sw.js               # Service Worker（离线缓存）
+├── make_zip.py         # 打包工具（生成 ZIP 方便传到手机）
+├── 打包.bat            # 双击运行打包工具
+├── tools/              # 开发测试工具（test_app.js / verify_modules.js）
 ├── README.md           # 用户使用说明
 └── PROGRESS.md         # 本文件 - 项目进展记录
 ```
@@ -33,6 +36,7 @@ docs-project-progress-Y9iLEE/
 | 模块 | 天数 | 状态 | 说明 |
 |------|------|------|------|
 | UG NX 12.0 | 10天 | ✅ 完成 | 内嵌在 index.html，含25节课知识点 |
+| 数字化入门 | 10天 | ✅ 完成 | 内嵌在 index.html，20个视频已配 B站 BV 号（内嵌播放），159条知识点 |
 | DJI Action 4 | 5天 | ✅ 完成 | 通过 template.html 加载 |
 | SolidWorks | 10天 | ✅ 完成 | 通过 template.html 加载 |
 | Excel | 10天 | ✅ 完成 | 通过 template.html 加载 |
@@ -48,6 +52,7 @@ docs-project-progress-Y9iLEE/
 - ✅ **手机端适配** - 自动识别，唤起B站App
 - ✅ **PWA 支持** - 可添加到主屏幕
 - ✅ **按天解锁** - 完成前一天才能开启下一天
+- ✅ **底部导航** - 首页 / 知识点 / 如何新增 三个入口
 
 ### 3. 视频播放控制（最新修复）
 
