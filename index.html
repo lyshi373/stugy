@@ -1355,7 +1355,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v13"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v14"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
