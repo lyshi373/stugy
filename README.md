@@ -6,12 +6,53 @@
 
 | 文件 | 说明 |
 |------|------|
-| `index.html` | **主入口** - 包含首页、软件打卡、知识点汇总、下载到手机全部功能 |
-| `template.html` | 通用打卡模板（DJI Action 4 / 自定义软件使用） |
+| `index.html` | **主入口** - 首页、软件打卡（通用引擎）、知识点汇总、下载到手机 |
+| `template.html` | 通用打卡模板（DJI Action 4 / 游泳 / 自定义软件使用） |
+| `modules/` | **每个软件一个文件**，存放该软件的学习内容与配置（详见下文「模块化」） |
 | `manifest.json` | PWA 应用配置文件 |
 | `sw.js` | Service Worker（离线缓存） |
 | `make_zip.py` | 打包工具（生成 ZIP 方便传到手机） |
 | `打包.bat` | 双击运行打包工具 |
+
+## 模块化结构（重点）
+
+所有软件的学习内容都独立存放在 `modules/` 目录，**主程序不直接写死任何课程数据**：
+
+| 文件 | 软件 | 类型 |
+|------|------|------|
+| `modules/ug-nx12.js` | UG NX 12.0 | 内嵌打卡（主程序内日历） |
+| `modules/digital-basics.js` | 数字化入门 | 内嵌打卡（主程序内日历） |
+| `modules/dji-action4.js` | DJI Action 4 | 通用模板（template.html） |
+| `modules/solidworks.js` | SolidWorks | 通用模板（template.html） |
+| `modules/excel.js` | Excel | 通用模板（template.html） |
+| `modules/swimming.js` | 游泳 Swimming | 通用模板（template.html） |
+
+### 修改某个软件的学习内容
+
+只改 `modules/` 下对应文件即可，无需动主程序：
+
+1. `embeddedPlan`：内嵌打卡用的每日计划（含学习目标、学习要点、视频、知识点）
+2. `templatePlan`：通用模板（template.html）用的每日计划
+3. `knowledgePreset`：知识点汇总页的数据（内嵌模块可省略，会自动由 embeddedPlan 生成）
+4. 修改后把 `planVersion` 递增（如 `v2` → `v3`），浏览器会自动更新学习计划，**已打卡记录和笔记不会丢**
+
+### 新增一个内嵌打卡软件（如 UG 那样带日历的模块）
+
+1. 在 `modules/` 新建 `xxx.js`，参照 `modules/digital-basics.js`：
+   - `type: "builtin"`
+   - `engine` 里指定 `viewId`（如 `view-xxx`）和 `domPrefix`（如 `xxx`）
+   - `embeddedPlan` 填每日计划
+2. 在 `index.html` 里复制一份打卡视图 HTML（参照 `view-digital`），把 id 前缀换成 `domPrefix`
+3. 把软件 id 加进 `index.html` 顶部的 `DEFAULT_SOFTWARE_IDS` / `EXTENDED_SOFTWARE_IDS`
+4. 主程序会自动注册视图、渲染日历、加载知识点
+
+### 新增一个模板型软件（走 template.html）
+
+1. 在 `modules/` 新建 `xxx.js`，参照 `modules/dji-action4.js`：
+   - `type: "template"`，提供 `templatePlan` 和 `knowledgePreset`
+2. 在 `index.html` 顶部的 `DEFAULT_SOFTWARE_IDS` / `EXTENDED_SOFTWARE_IDS` 加上该软件 id，首页即出现卡片
+
+> 如需调整首页展示顺序，修改 `index.html` 顶部的 `DEFAULT_SOFTWARE_IDS` 即可。
 
 ## 快速开始
 

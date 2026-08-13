@@ -13,13 +13,20 @@ today = datetime.now().strftime("%Y%m%d")
 zip_name = f"学习打卡中心_{today}.zip"
 zip_path = os.path.join(base_dir, zip_name)
 
-# 要打包的文件
+# 要打包的文件（软件学习内容模块：modules 目录下所有 js）
 files = [
     "index.html",
     "template.html",
     "manifest.json",
     "sw.js",
 ]
+modules_dir = os.path.join(base_dir, "modules")
+if os.path.isdir(modules_dir):
+    files += [
+        os.path.join("modules", f).replace("\\", "/")
+        for f in sorted(os.listdir(modules_dir))
+        if f.endswith(".js")
+    ]
 
 print("=" * 50)
 print("  学习打卡中心打包工具")

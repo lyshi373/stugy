@@ -8,6 +8,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>学习打卡中心</title>
+<!-- 软件学习内容模块：每个软件一个文件（modules/*.js），主程序自动加载 -->
+<script src="modules/ug-nx12.js"></script>
+<script src="modules/digital-basics.js"></script>
+<script src="modules/dji-action4.js"></script>
+<script src="modules/solidworks.js"></script>
+<script src="modules/excel.js"></script>
+<script src="modules/swimming.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   :root{
@@ -901,8 +908,8 @@
       <header>
         <div class="header-inner">
           <a class="back-link" onclick="switchView('home')">← 返回打卡中心</a>
-          <h1><span class="logo">UG NX 12.0</span> 自学打卡日历 · 10天冲刺</h1>
-          <div class="subtitle">基于 B站《UG12.0从入门到精通 25节课》教程，每天2-3节 + 笔记打卡，10天学完全部25节</div>
+          <h1 id="ugHeaderTitle"><span class="logo">UG NX 12.0</span> 自学打卡日历 · 10天冲刺</h1>
+          <div class="subtitle" id="ugHeaderDesc">基于 B站《UG12.0从入门到精通 25节课》教程，每天2-3节 + 笔记打卡，10天学完全部25节</div>
           <div class="progress-wrap">
             <div class="progress-info">已完成 <b id="ugDoneCount">0</b> / <span id="ugTotalCount">10</span> 天</div>
             <div class="progress-bar"><div class="progress-fill" id="ugProgressFill"></div></div>
@@ -943,6 +950,61 @@
             <div style="margin-top:14px;display:flex;gap:8px;">
               <button class="export-btn" id="ugDaysCancelBtn" style="flex:1;text-align:center;">取消</button>
               <button class="checkin-btn" id="ugDaysApplyBtn" style="flex:1;">确认修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数字化入门打卡视图（复用 .ug-app 样式，dg 前缀 id，由通用引擎驱动） -->
+  <div class="view" id="view-digital">
+    <div class="ug-app">
+      <header>
+        <div class="header-inner">
+          <a class="back-link" onclick="switchView('home')">← 返回打卡中心</a>
+          <h1 id="dgHeaderTitle"><span class="logo">数字化入门</span> 自学打卡日历 · 10天冲刺</h1>
+          <div class="subtitle" id="dgHeaderDesc">AI协作与Agent制作 · 每天学习 + 笔记打卡，10天学完全部内容</div>
+          <div class="progress-wrap">
+            <div class="progress-info">已完成 <b id="dgDoneCount">0</b> / <span id="dgTotalCount">10</span> 天</div>
+            <div class="progress-bar"><div class="progress-fill" id="dgProgressFill"></div></div>
+            <button class="export-btn" id="dgChangeDaysBtn">⚙ 修改天数</button>
+            <button class="export-btn" id="dgExportAllBtn">导出全部笔记(Word)</button>
+            <button class="reset-btn" id="dgResetBtn">重置进度</button>
+          </div>
+        </div>
+      </header>
+      <main>
+        <div class="section-title">学习日历（按顺序解锁，需完成前一天的打卡才能开启下一天）</div>
+        <div class="calendar-grid" id="dgCalendarGrid"></div>
+      </main>
+      <!-- 数字化打卡模态 -->
+      <div class="ug-modal-mask" id="dgModalMask">
+        <div class="ug-modal">
+          <div class="ug-modal-header">
+            <div>
+              <div class="day-label" id="dgModalDayLabel">DAY 1</div>
+              <h2 id="dgModalTitle">主题</h2>
+            </div>
+            <button class="ug-close-btn" id="dgCloseBtn">×</button>
+          </div>
+          <div class="ug-modal-body" id="dgModalBody"></div>
+        </div>
+      </div>
+      <div class="ug-toast" id="dgToast"></div>
+      <!-- 数字化修改学习天数弹窗 -->
+      <div class="ug-modal-mask" id="dgDaysModal">
+        <div class="ug-modal" style="max-width:360px;">
+          <div class="ug-modal-header">
+            <h2>修改学习天数</h2>
+            <button class="ug-close-btn" id="dgDaysCloseBtn">×</button>
+          </div>
+          <div class="ug-modal-body" style="padding:20px;">
+            <p id="dgDaysModalInfo" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.6;"></p>
+            <input type="number" id="dgDaysInput" min="1" max="365" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;box-sizing:border-box;">
+            <div style="margin-top:14px;display:flex;gap:8px;">
+              <button class="export-btn" id="dgDaysCancelBtn" style="flex:1;text-align:center;">取消</button>
+              <button class="checkin-btn" id="dgDaysApplyBtn" style="flex:1;">确认修改</button>
             </div>
           </div>
         </div>
@@ -1088,7 +1150,7 @@
 // 旧版 SW 缓存了错误/不存在的文件，导致 SolidWorks/Excel/自定义软件白屏、新增失效
 // 此处主动卸载所有遗留 SW 并清空缓存，刷新一次后即可脱离旧 SW 控制、加载最新代码
 // 每次更新代码时，请递增 CACHE_VERSION 常量
-const CACHE_VERSION = "v9"; // 与 sw.js 中的 CACHE_NAME 保持一致
+const CACHE_VERSION = "v10"; // 与 sw.js 中的 CACHE_NAME 保持一致
 (function(){
   if(!('serviceWorker' in navigator)) return;
   
@@ -1125,24 +1187,56 @@ const CACHE_VERSION = "v9"; // 与 sw.js 中的 CACHE_NAME 保持一致
   });
 })();
 
-// 默认软件列表（3个核心模块）
-const defaultSoftware = [
-  {id:"ug-nx12",name:"UG NX 12.0",desc:"西门子三维CAD/CAM",color:"#40A9FF",days:10,link:"#",type:"builtin"},
-  {id:"dji-action4",name:"DJI Action 4",desc:"大疆运动相机·5天速成",color:"#6366f1",days:5,link:"template.html?software=dji-action4",type:"template",iconLetter:"D"},
-  {id:"swimming",name:"游泳Swimming",desc:"10天零基础到1000米",color:"#0891b2",days:10,link:"template.html?software=swimming",type:"template",iconLetter:"泳"}
-];
+// ================================================================
+// 软件模块集中注册：学习内容都在 modules/*.js 中
+// 想调整首页展示顺序 / 是否展示，改下面两个 ID 数组即可
+// ================================================================
+const DEFAULT_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "swimming"]; // 首页核心模块
+const EXTENDED_SOFTWARE_IDS = ["digital-basics"];                    // 扩展模块（同样展示）
 
-const extendedSoftware = [
-  {id:"solidworks",name:"SolidWorks",desc:"三维机械设计·10天速成",color:"#dc2626",days:10,link:"template.html?software=solidworks",type:"template",iconLetter:"S"},
-  {id:"excel",name:"Excel",desc:"数据处理与公式·10天速成",color:"#059669",days:10,link:"template.html?software=excel",type:"template",iconLetter:"E"}
-];
+function softwareFromModule(m){
+  return {
+    id: m.id, name: m.name, desc: m.desc, color: m.color, days: m.days,
+    link: m.type === "builtin" ? "#" : ("template.html?software=" + m.id),
+    type: m.type,
+    iconLetter: m.iconLetter || m.name.charAt(0).toUpperCase()
+  };
+}
+function getModule(id){ return (window.LearningModules || {})[id] || null; }
 
-// 视图配置（UG打卡和知识点汇总已内嵌，不再用iframe）
+// 默认软件列表（由模块注册表生成）
+const defaultSoftware = DEFAULT_SOFTWARE_IDS.map(getModule).filter(Boolean).map(softwareFromModule);
+const extendedSoftware = EXTENDED_SOFTWARE_IDS.map(getModule).filter(Boolean).map(softwareFromModule);
+
+// 内嵌打卡引擎配置（type=builtin 的模块自动注册：新增内置模块只需在 modules/ 加一个文件）
+const BUILTIN_CONFIGS = {};
+Object.keys(window.LearningModules || {}).forEach(id=>{
+  const m = window.LearningModules[id];
+  if(m && m.type === "builtin" && m.engine && m.embeddedPlan){
+    BUILTIN_CONFIGS[id] = Object.assign({}, m.engine, {
+      id: m.id,
+      name: m.name,
+      color: m.color,
+      domPrefix: m.engine.domPrefix || m.engine.viewId.replace("view-", ""),
+      planSource: m.embeddedPlan,
+      planVerKey: m.engine.planVerKey || (m.engine.storageKey + "_plan_version")
+    });
+  }
+});
+const BUILTIN_VIEWS = {};        // viewName -> 配置（如 digital -> digital-basics 的配置）
+const BUILTIN_VIEWS_BY_ID = {};  // 软件 id -> viewName
+Object.keys(BUILTIN_CONFIGS).forEach(id=>{
+  const vn = BUILTIN_CONFIGS[id].viewId.replace("view-", "");
+  BUILTIN_VIEWS[vn] = BUILTIN_CONFIGS[id];
+  BUILTIN_VIEWS_BY_ID[id] = vn;
+});
+
+// 视图配置（内嵌打卡视图由模块自动注册）
 const viewConfig = {
   home:{title:"学习打卡中心"},
-  ug:{title:"UG NX 12.0 打卡"},
   knowledge:{title:"知识点汇总"},
 };
+Object.keys(BUILTIN_VIEWS).forEach(vn=>{ viewConfig[vn] = {title: BUILTIN_VIEWS[vn].name + " 打卡"}; });
 
 // 切换视图
 function switchView(name){
@@ -1158,8 +1252,10 @@ function switchView(name){
   // 回到顶部
   window.scrollTo(0,0);
   if(name==='home') renderList();
-  if(name==='ug' && typeof ugRenderCalendar==='function') ugRenderCalendar();
   if(name==='knowledge' && typeof kpRenderSoftwareList==='function') kpRenderSoftwareList();
+  // 内嵌打卡视图：由通用引擎按模块配置渲染
+  const biCfg = BUILTIN_VIEWS[name];
+  if(biCfg && typeof BI!=='undefined' && typeof BI.renderCalendar==='function') BI.renderCalendar(biCfg);
 }
 
 // 下载到手机-平台切换
@@ -1245,10 +1341,11 @@ function renderList(){
     const prog = getProgress(sw.id);
     const pct = prog.total>0 ? Math.round(prog.done/prog.total*100) : 0;
     const isBuiltin = sw.type==="builtin";
+    const targetView = isBuiltin ? (BUILTIN_VIEWS_BY_ID[sw.id] || null) : null;
     const iconLetter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
-    const href = isBuiltin ? "#" : sw.link;
-    const clickAction = isBuiltin
-      ? `onclick="event.preventDefault();switchView('ug');"`
+    const href = targetView ? "#" : sw.link;
+    const clickAction = targetView
+      ? `onclick="event.preventDefault();switchView('${targetView}');"`
       : `onclick="event.preventDefault();window.location.href=this.href;"`;
     html += `
       <a href="${href}" class="sw-card" ${clickAction}>
@@ -1270,7 +1367,7 @@ function renderList(){
           <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();window.location.href='${sw.link}';">进入打卡</span>
           <span class="sw-action-btn danger" onclick="event.preventDefault();event.stopPropagation();deleteSoftware('${sw.id}');">删除</span>
         </div>` : `<div class="sw-actions">
-          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();switchView('ug');">进入打卡</span>
+          <span class="sw-action-btn" onclick="event.preventDefault();event.stopPropagation();switchView('${targetView||'ug'}');">进入打卡</span>
         </div>`}
       </a>
     `;
@@ -1388,529 +1485,75 @@ document.getElementById("addModal").addEventListener("click",function(e){
 </script>
 
 <script>
-/* ============ UG NX 12.0 打卡日历（内嵌版，函数加ug前缀避免冲突） ============ */
-const UG_STORAGE_KEY = "ug_nx12_checkin_data";
-const UG_DAYS_KEY = "ug_nx12_total_days";
-const UG_CONTENT_KEY = "ug_nx12_checkin_content";
-const UG_PLAN_VER_KEY = "ug_nx12_plan_version";
-const UG_PLAN_VERSION = "20260806-v2"; // 修改预填充内容时递增，触发用户端自动更新
-const UG_BASE_BVID = "BV1SYJc6MEWJ";
-let UG_TOTAL_DAYS = parseInt(localStorage.getItem(UG_DAYS_KEY) || "10");
+/* ============================================================
+ * 通用内嵌打卡引擎：驱动所有 type=builtin 的模块（UG、数字化入门…）
+ * 每个模块在 modules/*.js 中提供 engine 配置 + embeddedPlan 计划，
+ * 视图元素 id 统一为「domPrefix + 后缀」，如 ugCalendarGrid / dgCalendarGrid
+ * ============================================================ */
+const BI = {};
 
-/* 原始UG预填充计划（10天固定版本，用作重分配的数据源） */
-const UG_ORIGINAL_PLAN = [
-  {
-    day:1,
-    title:"Day1 · 软件入门基础（1.1-1.3）",
-    desc:"文件新建保存/界面编辑/鼠标操作",
-    goal:"完成 UG NX 12.0 软件启动、文件新建与保存、认识工作界面各区域功能，掌握鼠标三键的基本操作，能独立创建一个新部件文件。",
-    points:[
-      "1.1 UG文件新建及保存：新建模板选择、单位设置、保存路径与格式（.prt）",
-      "1.2 UG界面编辑：菜单栏、功能区选项卡、资源条、图形窗口、提示行与状态行",
-      "1.3 鼠标的操作：左键选择、中键确认/旋转/缩放（滚轮）、右键菜单",
-      "界面定制：工具条显示/隐藏、命令按钮添加、角色保存",
-      "文件管理：打开、保存、另存为、关闭、最近打开"
-    ],
-    videos:[
-      {title:"1.1 UG文件新建及保存",page:1,knowledge:[
-        "UG NX 12.0 启动方式：开始菜单 / 桌面快捷方式；第一次启动可选择角色（高级、加工、装配等）",
-        "新建文件（Ctrl+N）：模板分「模型」「图纸」「装配」「仿真」等大类，建模常用「模型」→「建模」",
-        "单位设置：毫米(mm) / 英寸(inch)，机械行业一律选毫米；模板默认单位由 NX 安装决定",
-        "文件名规则：不允许中文、空格、特殊字符（!@#$%*），建议用字母+数字+下划线，如 part_001.prt",
-        "保存文件（Ctrl+S）：首次保存需选择保存路径，建议路径纯英文避免中文字符乱码",
-        "另存为 / 保存工作部件 / 全部保存（Ctrl+Shift+S）的区别：另存为复制新文件、保存工作部件只保存当前激活部件、全部保存保存所有打开部件",
-        "文件关闭：仅关闭窗口 vs 关闭并保存；UG 会周期性自动备份（.log 文件），崩溃后可恢复",
-        "历史记录：「文件」→「最近打开的部件」快速打开最近用过的文件；支持右键菜单固定/清理历史"
-      ]},
-      {title:"1.2 UG界面编辑",page:2,knowledge:[
-        "菜单栏：文件、编辑、视图、插入、格式、工具、装配、信息、分析、首选项、窗口、帮助共12项",
-        "功能区（Ribbon）选项卡：「主页」最常用（特征、草图）、「装配」「曲面」「分析」等模块切换",
-        "资源条（左侧竖条）：部件导航器（最重要）、装配导航器、重用库、角色、历史记录、加工向导等",
-        "图形窗口：中间显示模型的区域，支持多标签页，每个部件独立显示",
-        "提示行（上）与状态行（下）：提示当前步骤应该做什么（选对象/选平面/输入参数）；状态行显示选择了多少对象",
-        "定制界面（Ctrl+1）：「命令」标签拖拽命令到工具条；「选项卡/条」显隐各模块；「角色」保存当前界面布局",
-        "角色（Role）：内置高级、基本、CAM 专项；可「新建角色」保存自己的按钮布局，换电脑导入即可复原",
-        "全屏模式：Ctrl+Shift+F 放大图形窗口，再按还原；适合大模型查看"
-      ]},
-      {title:"1.3 鼠标的操作",page:3,knowledge:[
-        "鼠标左键（LB）：单击选单个对象、框选（从左到右选全包围、从右到左选半包围），按住拖拽连续选",
-        "鼠标中键（MB）：按一下 = 确定（OK，对话框下一步）；按住拖拽 = 旋转模型视图；滚轮滚动 = 缩放视图",
-        "滚轮缩放中心：默认以光标位置为中心缩放，可在首选项中切换缩放模式",
-        "Ctrl + 中键拖拽：平移视图（不旋转只移动）；也可用 Shift + 中键",
-        "鼠标右键（RB）：在空白处长按弹出「快捷圆盘」菜单（径向菜单），中心是常用命令，周围8个扇区可选",
-        "圆盘菜单定制：Ctrl+1 →「圆盘菜单」标签页，可设置自己常用的8个命令",
-        "物体上右键：弹出该对象专属菜单（编辑参数、编辑位置、隐藏、抑制、删除等）",
-        "视图方向快捷键：F8 摆正到最近的正视图；Home 恢复默认等轴测视图；End/Top 等方向键对应视图"
-      ]}
-    ]
-  },
-  {
-    day:2,
-    title:"Day2 · 视图操作与草图入门（1.4-1.5 + 2.1进入草图）",
-    desc:"右键菜单/组合键推拉菜单/进入草图",
-    goal:"掌握右键菜单与组合键推拉菜单的视图操作技巧，了解草图概念并掌握三种进入草图环境的方式及草图平面选择。",
-    points:[
-      "1.4 右键菜单：空白处右键、物体上右键、快捷操作圆盘",
-      "1.5 组合键及推拉菜单：Ctrl+Shift+左/中/右键九宫格、右键方向滑动",
-      "快捷键定制：Ctrl+1 定制对话框、重置工具条/圆盘菜单/菜单",
-      "2.1 进入草图：三种方式（直接草图、任务环境、特征）",
-      "草图平面选择：现有面、基准平面、新建平面、自动判断",
-      "草图方向与草图原点：指定矢量、工作部件原点",
-      "坐标系乱掉时的快速定位方法"
-    ],
-    videos:[
-      {title:"1.4 右键菜单",page:4,knowledge:[
-        "空白处右键：刷新、选择条过滤方式（单对象/相交/全相交）、刷新屏幕、清除高亮、布局切换",
-        "物体上右键（无命令激活时）：编辑参数、可回滚编辑、编辑位置、抑制、隐藏、删除、属性、编辑显示",
-        "命令激活中右键：确认当前步、后退（上一步）、取消（ESC）、重置当前输入",
-        "弹出菜单深度：不同对象弹出的菜单项不同，如草图右键含「完成草图」「定向视图到草图」",
-        "快捷圆盘菜单：按住右键在空白区域停留片刻弹出，中心区域+8扇区，每个扇区可放一个高频命令",
-        "视图操作菜单：在圆盘菜单「视图」扇区里有正等侧/俯视图/正视图/左视图等快速切换",
-        "圆盘菜单定制：Ctrl+1 →「圆盘」页签，按扇区分配按钮；建议高频命令放圆盘，低频走功能区",
-        "常用：圆盘里放「隐藏」「显示」「正视于」「显示所有对象」这四个最省时间"
-      ]},
-      {title:"1.5 组合键及推拉菜单",page:5,knowledge:[
-        "Ctrl+Shift+左键九宫格(3×3)：每格对应命令，左上起依次为视图方向、比例、窗口切换等",
-        "Ctrl+Shift+中键九宫格：旋转、平移、缩放等观察命令",
-        "Ctrl+Shift+右键九宫格：测量、隐藏、编辑、对象显示等编辑命令",
-        "九宫格自定义：Ctrl+1 定制里可改每个格子放什么命令，按个人习惯排",
-        "右键方向滑动：上下左右推按不同方向触发不同动作，可定制为上=俯视图、下=仰视图、左=左视、右=右视",
-        "视图切换键：Top=俯视图、Front=正视图、Right=右视图、Back=后视图、Left=左视图、Bottom=仰视图、TFR-TRI=正等轴测、TFR-ISO=斜等轴测",
-        "定向视图到对象（Ctrl+Shift+O）：把视图正视于你选的面，画草图/钻孔前必用",
-        "小技巧：F8=视图摆正到最近平面；Ctrl+Shift+F=全屏视图；Ctrl+F=拟合视图到最大"
-      ]},
-      {title:"2.1 进入草图",page:6,knowledge:[
-        "草图（Sketch）：二维参数化绘图环境，是所有三维特征的截面基础，所有尺寸都可驱动",
-        "三种进入草图方式：①直接草图（主页选项卡→「草图」按钮，不退出建模）②任务环境中的草图（插入→任务环境草图，全屏独立）③特征内草图（画拉伸时自动进草图）",
-        "草图平面是第一步要选的：现有平面（面/基准平面）、创建平面、创建基准坐标系（CSYS）",
-        "XY/YZ/XZ 三个基准平面是建模坐标系的三大平面，默认平面优先用它们",
-        "「自动判断」：选到哪个面/基准平面就用哪个平面，最省事",
-        "草图方向：平面选完后可选「参考」方向（哪个方向朝上），通常用水平方向或选边",
-        "草图原点：草图(0,0)落在哪，一般默认即可，若需对齐边可指定",
-        "完成草图（Ctrl+Q）：退出草图环境返回建模；草图环境与建模环境通过「完成草图」互切换"
-      ]}
-    ]
-  },
-  {
-    day:3,
-    title:"Day3 · 草图绘制工具（2.2直线圆 + 2.3阵列 + 2.4对称偏置）",
-    desc:"直线圆/阵列/对称偏置圆角",
-    goal:"掌握直线、圆工具的XY模式与参数模式绘制，学会阵列曲线、对称镜像、偏置曲线及圆角工具，能完成含阵列孔的草图。",
-    points:[
-      "2.2 直线与圆工具：XY模式绘制、参数绘制、圆心+直径",
-      "尺寸驱动性：UG 参数化，双击尺寸修改",
-      "捕捉点开关、右下角提示栏",
-      "几何约束入门：相切、共点、同心",
-      "快速修剪、删除多余线段",
-      "2.3 阵列工具：圆形阵列、线性阵列、阵列定义（布局/数量/间距）",
-      "对象类型转换：实线 ↔ 参考线",
-      "2.4 对称偏置圆角：镜像曲线、偏置曲线、角焊（圆角）",
-      "小练习：含阵列圆孔的对称草图"
-    ],
-    videos:[
-      {title:"2.2 直线与圆工具",page:7,knowledge:[
-        "直线工具：①XY坐标模式（在对话框里输入起点终点X/Y值，精确）②鼠标点击拖动③参数化长度+角度绘制",
-        "圆工具：①圆心+直径（输入圆心坐标+直径，最常用）②三点画圆（过三点）③相切相切半径（画两曲线间的公切圆）",
-        "圆弧工具：三点圆弧、中心+起点+终点圆弧；与圆类似，但只画一段弧",
-        "尺寸驱动性：画完不用在意大小，之后双击尺寸输入数值即可修改，UG 会自动按新尺寸重生成",
-        "捕捉点开关（右上/右下）：端点、中点、圆心、交点、切点、四等分点、控制点、象限点等；按需开启避免干扰",
-        "点构造器：鼠标右键可临时调用；也可按对话框箭头打开精确输入窗口",
-        "快速修剪：点选线段一段段剪掉，或按住左键横扫把多余段批量剪；无法修剪开放段时先延长",
-        "快速延伸：与修剪同组，让线段自动延长到下一条边界上",
-        "几何约束入门：自动标约束（关闭则完全自由），相切、共点、同心、共线、水平、竖直、平行、垂直 8 种最基础"
-      ]},
-      {title:"2.3 阵列工具",page:8,knowledge:[
-        "阵列曲线（草图内阵列）：分「线性阵列」和「圆形阵列」，注意是在草图环境内对二维曲线阵列",
-        "线性阵列：选择要阵列的曲线→指定X方向（数量+节距或数量+总跨距）→指定Y方向→确定",
-        "节距 vs 跨距：节距=相邻中心距；跨距=首末对象之间总距离；根据图上标注选",
-        "圆形阵列：选曲线→选中心参考点→数量+节距角或数量+总角度；阵列方向可选顺时针/逆时针",
-        "布尔选项：无、加、减、交——在草图里阵列和原对象是分开还是合并，一般选无",
-        "对象类型转换（实线↔参考线）：画阵列基准圆时经常需要把圆转成参考线（虚线），仅作位置参考不参与建模",
-        "阵列孔：圆画一个孔，再用圆形/线性阵列出全部孔，是法兰盘、端盖等零件的标准画法",
-        "删除阵列实例：阵列后可单独删除某个位置的对象；用主菜单编辑→曲线→删除阵列成员"
-      ]},
-      {title:"2.4 对称偏置圆角",page:9,knowledge:[
-        "镜像曲线（对称）：选要镜像的曲线→选对称中心线→确认；UG 自动添加「对称」约束，改一边另一边同步变化",
-        "镜像中心线要求：必须是草图中的直线，一般转参考线；轴必须在同一张草图里",
-        "偏置曲线：把已有曲线按指定距离偏移出一条平行副本；分「距离」「拔模」「规律控制」三种偏置方式",
-        "3D 偏置 vs 草图偏置：草图内偏置是二维平面内偏，3D 偏置是空间偏；本课程在草图里都是草图偏置",
-        "角焊（圆角/倒圆）：选两条相邻线→输入半径→确定；支持同时框选多个角批量倒圆角",
-        "圆角规则：先在约束基本完成后再倒圆角，否则约束可能乱跑；半径不要小于线长导致失败",
-        "取消圆角：圆角出错时可回退；若已添加约束先删掉该约束再重画",
-        "小练习（含阵列圆孔的对称草图）完整流程：画中心参考十字→画大圆外形→画孔位参考圆→画一个孔→阵列孔→镜像对称部分→全约束→修多余线→倒圆角"
-      ]}
-    ]
-  },
-  {
-    day:4,
-    title:"Day4 · 草图约束与技巧（2.5约束 + 2.6派生 + 2.7草图技巧）",
-    desc:"约束工具/派生曲线/草图技巧",
-    goal:"系统掌握草图几何约束与尺寸约束，学会派生曲线、偏置曲线操作，积累草图绘制技巧，能完成钩子等中等复杂草图。",
-    points:[
-      "2.5 约束工具：固定、重合、同心、共线、水平、竖直、相切、等长、对称",
-      "约束冲突识别与解决（如平行且垂直冲突）",
-      "快速尺寸：自动判断、水平、竖直、平行、角度、径向",
-      "钩子实例：多圆相切、距离约束、角焊圆角",
-      "2.6 派生曲线：派生直线、偏置曲线、投影曲线、相交曲线",
-      "2.7 草图技巧：参考线使用、显示草图约束开关、定向视图到草图",
-      "草图绘制顺序建议：先主后次、先大后小、先形状后尺寸"
-    ],
-    videos:[
-      {title:"2.5 约束工具",page:10,knowledge:[
-        "几何约束 vs 尺寸约束：几何约束（固定/重合/同心等）控制位置关系；尺寸约束（直径/长度/角度等）控制大小，二者配合构成全约束",
-        "全约束（自由度=0）：所有曲线都变成浅绿色，草图不会乱动；半约束（自由度>0）会有「欠约束」黄色警示，仍可拉伸但后续修改风险大",
-        "11种几何约束速记：固定/重合/同心/共线/点在曲线上/中点/水平/竖直/平行/垂直/相切/等长/等半径/恒定角度/对称——按字面意思理解",
-        "自动约束 vs 手动约束：绘制时自动加的约束不够或错→手动补；先画大致形状再加约束效率更高",
-        "约束冲突：两条线同时被加平行+垂直就会冲突，提示栏变红，需要删掉多余的一个约束（在约束栏右键删除）",
-        "快速尺寸：自动判断模式（点哪标哪）最省时；必要时切换到水平、竖直、平行、垂直、角度、径向、周长尺寸",
-        "周长尺寸：给封闭轮廓约束总长，常用于弹簧、凸轮类",
-        "钩子实例完整流程：画中心十字→画外轮廓大圆→画各段圆弧（相切约束是关键）→画小圆并约束到指定距离→加圆角→修剪多余段→全约束"
-      ]},
-      {title:"2.6 派生曲线",page:11,knowledge:[
-        "派生直线：画两条平行线，选两条平行线段→UG 在它们中间自动派生一条平行线；也可派生一条与两条都成指定角度的斜角平分线",
-        "偏置曲线（草图内）：选已有曲线→输入偏置距离→选方向；原曲线不变，新增一条等距副本；支持链式偏置多条边",
-        "投影曲线：把当前草图外的对象（3D 边、其他草图、片体边等）投影到当前草图平面上，变成草图里的曲线；最常用命令之一",
-        "投影曲线注意：投影来的曲线会带「投影约束」，删除投影约束才能自由改；原对象变化投影曲线自动跟随",
-        "相交曲线：求一个面/基准面与草图平面的交线；常用于确定草图与已有特征的交界",
-        "综合：派生直线用得少，偏置/投影/相交用得多；特别是先做一个大特征，再在上面开槽，经常用投影把特征边投过来当参考",
-        "派生类曲线一般是辅助，最后要修剪并和主体线合并成封闭轮廓才能拉伸"
-      ]},
-      {title:"2.7 草图技巧",page:12,knowledge:[
-        "草图绘制黄金顺序：① 画参考线（转虚线）定基准 ② 画主体形状（不管大小） ③ 加几何约束 ④ 加尺寸约束（先大体后细节） ⑤ 倒圆角 ⑥ 修剪完成",
-        "草图欠约束可接受吗？初学建议先做到全约束（浅绿色），熟练后少量欠约束可以接受，但关键尺寸一定要标",
-        "约束符号看不清：「显示草图约束」按钮可切换显示/隐藏所有约束符号；双击符号可以编辑该约束",
-        "定向视图到草图：进入复杂草图先按 F8 或点「定向视图到草图」按钮，正视平面才好画",
-        "参考线用法：草图里复杂零件的中心、中心线、孔位分布圆等都先画再转参考线，参考线不参与拉伸但可以被约束到",
-        "轮廓命令：先拖画整体轮廓（直线+圆弧自动切换），最后再统一加约束，比一条一条画快",
-        "草图失败排查：修改父特征后草图失效，进草图看是不是有冲突或悬空约束→删掉死约束重新加",
-        "草图评估：「信息」→「草图」可查看自由度、约束数量、状态，辅助诊断问题"
-      ]}
-    ]
-  },
-  {
-    day:5,
-    title:"Day5 · 拉伸特征入门（3.1拉伸实例 + 3.2拉伸详解）",
-    desc:"拉伸实例/拉伸详解",
-    goal:"理解草图到实体的转换流程，掌握拉伸命令的截面选择、方向、距离限制等核心参数，能完成第一个拉伸实体模型。",
-    points:[
-      "3.1 拉伸实例：从草图到实体的完整流程演示",
-      "3.2 拉伸详解：截面选择、矢量方向、限制（距离/对称/直至下一个）",
-      "布尔运算：无、求和、求差、求交",
-      "拉伸成实体 vs 片体的区别",
-      "拔模角度在拉伸中的应用",
-      "拉伸特征在部件导航器中的编辑方法"
-    ],
-    videos:[
-      {title:"3.1 拉伸实例",page:13,knowledge:[
-        "拉伸（Extrude）= 把二维截面沿着指定方向扫出一段高度，生成实体/片体；是三维建模里用得最多的命令",
-        "拉伸完整流程：①选/画草图截面 ②打开拉伸（插入→设计特征→拉伸 / 快捷键 X） ③选截面 ④选方向 ⑤输入距离 ⑥选布尔 ⑦确定",
-        "选择意图：选截面前把「选择意图」切换为「单条曲线」「相连曲线」「特征曲线」——相连曲线用得最多，点一条自动串联整个轮廓",
-        "截面开口 vs 闭合：开口截面拉伸成「片体」（一张薄面）；闭合截面默认拉成「实体」；可在「设置」里强制选片体/实体",
-        "部件导航器（左侧资源条）：拉伸后会在特征树看到一个「拉伸」，包含其内部草图标；可右键→编辑参数、编辑位置、删除、抑制",
-        "布尔运算（Boolean）：无（创建独立体）、求和（和已有实体粘成一块）、求差（从已有实体挖掉）、求交（保留两者重叠部分）",
-        "求和注意：两个体必须有真实相交的体积，否则报错；遇到求和失败检查是否只碰到边或点",
-        "实例：画一个矩形草图→拉成长方体→再在上面画圆草图→求差拉伸成孔→这就是一个简单板带孔零件完整建模"
-      ]},
-      {title:"3.2 拉伸详解",page:14,knowledge:[
-        "截面（Section）：可直接选已有草图，也可在拉伸对话框里即时「绘制截面」新建草图；后者更省步骤",
-        "方向（Direction）：默认垂直于草图平面；也可手动选边/基准轴作为方向矢量，甚至可以反向",
-        "限制（Limits）：①值（Value，输入距离数）②对称值（从草图平面向两侧对称各拉一半）③直至下一个（Until Next，碰到下一个体就停）④直至选定（Until Selected，到指定的面/体停）⑤贯通（Through All，直接穿整个体）",
-        "直到延伸（Until Extended）：选择的参考面不够大时自动扩展再截停",
-        "拔模（Draft）：拉伸时给侧面加锥度；分「从起始处」「从截面」「从起始-结束」三种方式；正数向内收，负数向外扩",
-        "拔模常见错误：锥度过大导致上底面面积归零，会报错；锥度通常≤15°安全",
-        "偏置（Offset，本节预览，Day6详解）：在截面内/外加厚拉，可做薄壁管",
-        "编辑参数 vs 可回滚编辑：编辑参数只改对话框数值；可回滚编辑=回到特征刚创建时的完整流程，可重选对象等，更灵活"
-      ]}
-    ]
-  },
-  {
-    day:6,
-    title:"Day6 · 拉伸进阶与旋转（3.3起点终点 + 3.4拉伸偏置 + 3.5旋转倒角）",
-    desc:"起点终点/拉伸偏置/旋转倒角",
-    goal:"掌握拉伸的起点终点设置与偏置功能，学会旋转特征创建回转体并完成倒角，能建模轴类、盘类零件。",
-    points:[
-      "3.3 起点终点：拉伸方向的起始与结束位置控制（直至选定/贯通）",
-      "3.4 拉伸偏置：单侧、两侧、对称偏置，创建薄壁实体",
-      "3.5 旋转倒角：旋转命令（截面+轴+角度）、倒斜角（对称/非对称/偏置角度）",
-      "旋转成实体 vs 片体",
-      "旋转实例：阶梯轴、皮带轮",
-      "边倒圆与倒斜角的区别与应用场景"
-    ],
-    videos:[
-      {title:"3.3 起点终点",page:15,knowledge:[
-        "起点（Start）与终点（End）：默认起点=0（从草图平面开始），终点=你输入的距离；但起点也可以不是草图平面，甚至可以在草图的另一侧",
-        "起点控制方式同终点：值/对称值/直至下一个/直至选定/贯通；起终点独立控制",
-        "直至选定（Until Selected）典型用例：把筋板、加强筋拉到刚好贴合一个曲面为止，不知道精确距离也没关系",
-        "贯通（Through All）典型用例：在厚板上打通孔，无论板材多厚都能打穿，不用手动改距离",
-        "直至下一个 vs 直至选定：前者自动找下一个碰到的体，后者是你手动选一个对象当止面",
-        "方向反向：拉伸过程中点「反向」按钮可以把拉伸方向反过来，注意布尔求差时要先判断方向对不对",
-        "失败排查：直至选定的参考面不够大，报错「无法修剪」→ 换用直到延伸（Until Extended），或先把参考面做大面积",
-        "实例：做阶梯轴→先画一个圆拉成短圆柱→再在其端面上画另一个大圆，起点=0终点=距离，拉成第二段→求和即可"
-      ]},
-      {title:"3.4 拉伸偏置",page:16,knowledge:[
-        "拉伸偏置（Offset）：在拉伸的同时，让截面再向内/向外偏一段厚度，生成薄壁实体；用一个命令直接做成空心管/壳",
-        "偏置模式：①无（不拉偏置）②单侧（向一侧偏，选向内/向外）③两侧（起点距离向内偏，终点距离向外偏，两个独立值）④对称（中心对称偏，厚度等分）",
-        "单侧偏置典型应用：圆形截面+单侧偏置→内/外管；方截面+单侧偏置→箱体侧壁",
-        "两侧偏置典型应用：两端厚度不一样的阶梯套筒",
-        "偏置厚度太大导致拐角自交，会报错「自相交截面」→减小偏置厚度或先画大截面再用抽壳",
-        "偏置 vs 抽壳：偏置是「在拉伸时顺便做壁厚」，抽壳是「先做成实心，再掏空」；拉伸偏置只适用于拉伸体，抽壳适用于所有实体（含旋转/扫掠等）",
-        "偏置还能在原截面基础上生成薄壁+原实体布尔，形成加强肋板",
-        "练习：画直径60的圆→拉伸偏置，单侧向外偏 5，高度 100→得到一根外径70、内径60、高100的空心管"
-      ]},
-      {title:"3.5 旋转倒角",page:17,knowledge:[
-        "旋转（Revolve）= 把二维截面绕某根轴旋转一定角度，生成回转体；轴类、盘类、法兰、皮带轮等零件都用旋转做主特征",
-        "旋转三要素：①截面（必须是闭合的实体截面，或开口生成片体）②轴（直线或基准轴）③旋转角度",
-        "轴选择规则：轴必须与截面共面，且不能穿过截面内部（穿过会自相交）；轴一般放在截面外侧，与截面的对称中心重合",
-        "旋转角度：默认 0°~360° 生成整圈；也可只转一段（0~180°生成半圆），或指定起止角度（-90°~90°）",
-        "布尔运算：旋转也支持求和/求差/求交；做台阶轴先转基础轴体，再画新截面旋转求和叠台阶",
-        "倒角类命令 1——倒斜角（Chamfer）：切去棱边的尖角；有「对称」两值相等、「非对称」两个值独立、「偏置和角度」三种模式",
-        "倒角类命令 2——边倒圆（Edge Blend，常称倒圆角）：选棱边→输入半径→确定；可同时选多条边批量倒",
-        "特征顺序很重要：先做主体，再倒大圆角，再倒角，最后打孔、切槽这种细节。顺序乱了可能倒不出来（比如先打孔再倒大圆角经常失败）"
-      ]}
-    ]
-  },
-  {
-    day:7,
-    title:"Day7 · 片体与孔特征（3.6片体实体 + 3.7孔工具 + 3.8螺纹）",
-    desc:"片体实体/孔工具/添加螺纹",
-    goal:"理解片体与实体的区别与转换，掌握孔特征（简单孔/沉头孔/埋头孔）的创建与定位，学会添加螺纹特征。",
-    points:[
-      "3.6 片体实体：片体概念、缝合、加厚、片体转实体",
-      "3.7 孔工具：常规孔、钻形孔、螺钉间隙孔、螺纹孔",
-      "孔形状：简单孔、沉头孔、埋头孔、锥形孔",
-      "孔定位：线性、径向、同轴、点的引用",
-      "3.8 添加螺纹：符号螺纹 vs 详细螺纹",
-      "螺纹参数：大径、小径、螺距、长度、旋向",
-      "实例：带螺纹孔的法兰盘"
-    ],
-    videos:[
-      {title:"3.6 片体实体",page:18,knowledge:[
-        "实体 vs 片体：实体有体积有厚度（六面体），片体是没有厚度的「面」；选中后UG颜色区分：实体默认灰/白，片体默认半透明",
-        "什么时候得到片体：①开口截面拉伸/旋转（无封闭）②曲面模块里的桥接、扫掠、N边曲面、修剪片体等命令③缝合时公差不够产生裂缝",
-        "缝合（Sew）：把多个相邻的片体拼接到一起，如果所有面闭合起来围成一个封闭水密的空间，就会自动变成实体",
-        "缝合公差：默认0.0254mm，面与面之间缝隙大于这个值就缝不上→加大公差，一般设到0.1足够大多数情况",
-        "加厚（Thicken）：给单片体加厚度变成实体；向内/向外/两侧偏，和拉伸偏置类似但更灵活",
-        "修剪片体：用面、曲线、基准去剪掉片体不需要的部分；先做一大张曲面再慢慢修是常见建模思路",
-        "片体转实体 3 种方法：①缝合（闭合面组）②加厚（开放面组也行）③补面（缺的几个面补起来再缝合）",
-        "片体失败排查：边界检查（分析→检查几何体→片体边界）可以找出面组有没有破洞/自由边"
-      ]},
-      {title:"3.7 孔工具",page:19,knowledge:[
-        "孔（Hole）特征（快捷键 H）：比「画圆再拉伸求差」更灵活，支持多种孔型及精确定位",
-        "孔类型：①常规孔（通用孔）②钻形孔（ISO/ANSI 标准钻头尺寸）③螺钉间隙孔（标准螺钉穿过的孔）④螺纹孔（自带螺纹标记）⑤孔系列",
-        "常规孔的形状：简单孔（直孔）、沉头孔（上方有台阶放螺栓头）、埋头孔（倒角式凹坑）、锥形孔（锥形口）",
-        "孔尺寸参数：直径、深度（值/贯通体/直至选定/直至下一个）、顶锥角（一般118°钻头标准角）",
-        "沉头孔参数：沉头直径、沉头深度、孔直径、孔深度",
-        "孔定位方式：①绘制草图定位（最灵活）②线性定位（选两边再输入距离）③径向定位（极坐标）④同轴（与已有孔/圆柱面同轴心）⑤点在点上",
-        "推荐定位方式：新学者先选「绘制草图的点」→ 在面上画一个点约束好位置→自动带出孔位，定位最直观",
-        "阵列孔：单个孔做好后用「阵列特征」阵列出多个（线性/圆形），可控制阵列数量/间距/角度，效率最高"
-      ]},
-      {title:"3.8 添加螺纹",page:20,knowledge:[
-        "螺纹（Thread）命令：给圆柱面/孔内表面添加螺纹标记或螺纹几何形状，用于紧固件连接",
-        "符号螺纹（Symbolic）：只在表面画出虚线螺纹标记，不真的切削出螺纹牙形；计算快、模型小，工程图里会自动正确标注",
-        "详细螺纹（Detailed）：真的切削出螺纹牙形；模型体积大、运算慢，仅用于需要渲染展示或3D打印的场景",
-        "符号螺纹参数：大径、小径、螺距、长度、旋转方向（右旋/左旋）、标注",
-        "读取标准：勾选「手动输入」关闭后，可读取 ISO/UNC/UNF 等标准螺纹表，选规格后参数自动填好",
-        "起始条件：螺纹从哪里开始；可指定起始面（从端面往里）、从指定距离处开始",
-        "左旋 vs 右旋：机械行业默认右旋（顺时针拧紧），特殊场合才用左旋",
-        "实例：法兰盘4个M10孔→先画4个直径8.5的钻孔→符号螺纹选每个孔的内表面→选M10标准→自动算出大径/小径/螺距→完成"
-      ]}
-    ]
-  },
-  {
-    day:8,
-    title:"Day8 · 基准面与抽壳（3.9建立基准面 + 3.10抽壳工具）",
-    desc:"建立基准面/抽壳工具",
-    goal:"掌握基准平面的多种创建方法，学会抽壳工具创建均匀/变壁厚壳体，为复杂建模打下基础。",
-    points:[
-      "3.9 建立基准面：自动判断、成一角度、按距离、平分、相切、曲线平面",
-      "基准轴与基准坐标系的创建",
-      "基准特征在建模中的辅助作用（草图平面、拉伸方向、阵列参考）",
-      "3.10 抽壳工具：均匀壁厚、变壁厚、抽壳面选择",
-      "抽壳方向：向内、向外、对称",
-      "抽壳与拔模、倒圆的执行顺序对结果的影响",
-      "实例：壳体零件、容器"
-    ],
-    videos:[
-      {title:"3.9 建立基准面",page:21,knowledge:[
-        "基准平面（Datum Plane）：虚拟的参考平面，无限大，不参与建模运算，但用作草图平面、定位面、镜像面、拔模方向等辅助",
-        "创建基准面常用 7 种方式：①自动判断②点和方向③在曲线上④按距离⑤成一角度⑥平分⑦相切",
-        "常用场景：「按距离」偏移出一个分层的草图平面，做阶梯零件；「成角度」做倾斜的肋板；「相切」过圆柱切点建平面画凸台",
-        "基准轴（Datum Axis）：参考直线，用法类似，常用于旋转特征轴、圆周阵列参考、方向矢量",
-        "基准坐标系（Datum CSYS）：同时生成 XY、YZ、XZ 三个基准平面+原点+三根轴，装配时很有用",
-        "基准关联性：基准面由哪个对象建立，就自动跟着那个对象移动；修改父特征尺寸，基准跟着动，后续特征也会自动更新——这就是参数化",
-        "什么时候需要单独建基准？草图时直接选现有面也会生成内部基准，但想让多个特征共用同一个参考面时就需要显式建一个",
-        "小技巧：新建基准后先点「显示结果」预览，确认平面位置对了再确定"
-      ]},
-      {title:"3.10 抽壳工具",page:22,knowledge:[
-        "抽壳（Shell）= 把实心实体挖空，只留一层壁；适合做箱体、外壳、容器、饮料瓶等带壁厚的零件",
-        "抽壳操作：打开抽壳→选择「要穿透的面」（会被挖开）→输入壁厚→确定；不选穿透面就是空心封闭体（气球型）",
-        "壁厚类型：①均匀壁厚（所有面同一个厚度，最常用）②备选厚度（为个别面单独指定厚度）",
-        "抽壳方向：向内（默认，内部挖空，外形不变）、向外（外表面加厚，内腔不变）、对称（内外各一半壁厚）",
-        "抽壳最小壁厚：太小（<0.1mm）容易失败；实际产品根据材料和工艺设定（注塑一般0.8~2mm）",
-        "抽壳特征顺序：抽壳前尽量先把所有主体特征做好再抽，特别是倒圆角/拔模",
-        "抽壳失败常见原因：①有尖锐的内角→先倒大圆角②倒圆半径≥壁厚→先减小圆角或增大壁厚③有的面缝隙太大→放大缝合公差",
-        "实例：做一个塑料杯→先旋转做出实心锥状→抽壳选顶面挖开，壁厚1.5，向外→杯口再倒大圆角→完成"
-      ]}
-    ]
-  },
-  {
-    day:9,
-    title:"Day9 · 综合练习一（4.1旋转抽壳练习 + 4.2基准练习）",
-    desc:"旋转抽壳练习/基准练习",
-    goal:"综合运用旋转、抽壳、基准面等命令完成实际零件建模，巩固前8天所学，提升建模思路与操作熟练度。",
-    points:[
-      "4.1 旋转抽壳练习：回转体建模 + 抽壳的完整流程",
-      "旋转截面绘制要点：闭合轮廓、轴线选择",
-      "抽壳面选择策略：保留哪些面、去除哪些面",
-      "4.2 基准练习：基准面/轴的灵活运用",
-      "辅助基准在复杂特征中的定位作用",
-      "特征编辑：双击特征修改参数、调整顺序",
-      "建模思路：分析零件 → 确定主特征 → 添加辅助特征 → 细节特征"
-    ],
-    videos:[
-      {title:"4.1 旋转抽壳练习",page:23,knowledge:[
-        "练习目标：综合运用草图→旋转→抽壳→倒圆角→基准面→孔 完整流程，独立做出一个端盖/壳体类零件",
-        "标准建模思路：①读懂二维图纸②分析主特征是旋转还是拉伸③先做最基础的主形体④附加次要的槽/孔/台⑤细节处理⑥测量检查尺寸",
-        "绘制旋转截面技巧：先画对称中心基准轴（转参考线）→画截面半边轮廓→加约束→加尺寸→检查闭合→完成草图",
-        "旋转后再抽壳的原则：先把实体所有外形做好（含拔模斜度）→抽壳→最后孔/螺纹；顺序调换会产生壁厚不均",
-        "常见出错：旋转截面有开口→得到片体抽不了壳；抽壳时穿透面没选到→全封闭壳找不到开口；边倒圆太大→破坏壁厚",
-        "调试方法：失败后看提示，常说的「无法构造几何体」就是某处壁厚为负或自交",
-        "建模完成检查：测量最大外径/高度/壁厚/孔直径，对照图纸；用剖切命令 Ctrl+H 切一半看内部壁厚是否均匀"
-      ]},
-      {title:"4.2 基准练习",page:24,knowledge:[
-        "练习目标：灵活运用基准平面、基准轴、基准 CSYS 解决复杂零件的定位与阵列",
-        "基准面练习案例：圆柱体表面开凸台，草图平面无法选圆弧面→先做过圆柱轴线+指定角度的基准面→在基准面上画草图→拉伸/旋转贴上去",
-        "基准面+阵列：圆周方向 6 处均匀分布凸台→先做第一个凸台的基准面（过轴+成角度）→建第一个凸台→对凸台使用「圆形阵列」（基准轴做参考轴）",
-        "基准轴练习：旋转特征轴找不到时→先做基准轴（两面相交线 / 圆柱中心线 / 两点连线）→旋转选基准轴",
-        "CSYS 基准坐标系：装配时从其它零件导入，要求坐标对准时先建共同基准 CSYS",
-        "基准特征太多怎么办：部件导航器里可以「隐藏基准」（Ctrl+B 隐藏 / Ctrl+Shift+B 显示），或者按图层分类管理",
-        "技巧：基准要「够用为准」，不要为了建基准而建基准，能直接用面/边的就不用新建基准"
-      ]}
-    ]
-  },
-  {
-    day:10,
-    title:"Day10 · 综合实战总结（4.3综合练习 + 全程回顾）",
-    desc:"综合练习/25节全程回顾",
-    goal:"通过综合练习整合所有命令，完成一个完整零件的建模流程，回顾25节课程要点，明确后续进阶方向。",
-    points:[
-      "4.3 综合练习：综合运用草图、拉伸、旋转、孔、抽壳、基准等命令",
-      "完整建模流程：分析 → 草图 → 主体特征 → 附加特征 → 细节 → 检查",
-      "部件导航器的使用：特征树管理、编辑、删除、重排序",
-      "图层管理：分类放置不同对象",
-      "对象显示：颜色、透明度、隐藏/显示",
-      "25节课程要点回顾：基础操作 → 草图 → 建模特征",
-      "后续进阶方向：曲面造型、装配设计、工程图、模具、CAM加工"
-    ],
-    videos:[
-      {title:"4.3 综合练习",page:25,knowledge:[
-        "综合练习目标：整合25节所有命令，独立完成一个中等复杂度零件（建议选法兰盘、轴承座、减速箱体类中任一）从 0 到完整模型",
-        "完整建模范式（法兰盘示例）：①新建文件②XY 平面画大圆+6孔草图→圆形阵列→完成草图③拉伸 20mm 生成盘主形体④端面画轴孔草图→拉伸求差生成孔⑤孔口做 90° 埋头孔⑥大外圆边倒 R2 圆角⑦内孔加 M 螺纹（符号）⑧6个安装孔加符号螺纹⑨剖切检查⑩信息→对象检查无错误",
-        "部件导航器深度使用：右键特征→「编辑参数」改数值、「可回滚编辑」重新选对象、「抑制」临时关闭该特征做对比、「重排在前面/后面」调顺序",
-        "图层管理（格式→图层设置）：图层1=实体，图层21=草图，图层41=基准/轴，图层61=片体/曲面，图层81=工程图",
-        "对象显示（Ctrl+J）：给不同特征/实体上不同颜色+透明度，方便装配和工程图区分",
-        "建模自检清单：草图全约束了吗？特征顺序合理吗？壁厚一致吗？孔位正确吗？关键尺寸和图纸对上了吗？",
-        "完成后输出：导出 STEP/IGES/X_T 通用格式给其它软件；或直接进入装配/制图模块继续下一步工作"
-      ]},
-      {title:"全程回顾 · 1.1-1.5 基础操作",page:1,knowledge:[
-        "回顾 1.1-1.5：①UG 新建/保存②界面构成③Ctrl+1 定制+保存角色④鼠标三键操作⑤右键菜单+组合键九宫格⑥视图快捷键",
-        "基础操作是地基：后续命令不管多复杂，都要靠这5节的选对象/看视图/确认/取消来推进",
-        "高频操作自查：打开一个旧部件，能在10秒内旋转/平移/缩放视图、找到上次修改的特征、单独隐藏一个面、切到主视图、保存关闭吗？",
-        "常见错误总结：①文件名用中文②单位选错③视图方向乱了按F8/Home恢复④快捷键冲突→Ctrl+1重置⑤选不到对象→检查选择条过滤器"
-      ]},
-      {title:"全程回顾 · 2.1-2.7 草图模块",page:6,knowledge:[
-        "回顾 2.1-2.7：①进入草图三种方式②直线/圆/圆弧绘制，参数化驱动③阵列曲线+对称镜像/偏置/圆角④11种几何约束+尺寸约束⑤派生直线/投影曲线/偏置/相交曲线⑥显示草图约束/定向视图到草图⑦绘制顺序",
-        "草图是所有三维特征的「根」：草图不过关，后续特征再高级也白搭。90% 的建模报错根因在草图",
-        "草图能力自测：给你一张中等复杂的二维图（含圆弧相切+对称+阵列），能在15分钟内画完并全约束吗？",
-        "后续进阶：先把草图练熟，再学曲面/装配/模具才稳；建议额外做 20~30 张不同类型的草图练习题"
-      ]}
-    ]
+/* ---------- 元素 / 工具 ---------- */
+BI.id = function(cfg, suffix){ return cfg.domPrefix + suffix; };
+BI.el = function(cfg, suffix){ return document.getElementById(BI.id(cfg, suffix)); };
+BI.bvid = function(cfg, v){ return (v && v.bvid) || cfg.baseBvid || ""; };
+BI.embedUrl = function(cfg, v){
+  const bv = BI.bvid(cfg, v);
+  if(!bv) return "";
+  return `https://player.bilibili.com/player.html?bvid=${bv}&page=${v.page||1}&high_quality=1&danmaku=0&autoplay=0&as_wide=1`;
+};
+BI.videoLink = function(cfg, v){
+  const bv = BI.bvid(cfg, v);
+  if(!bv) return "";
+  return `https://www.bilibili.com/video/${bv}/?p=${v.page||1}`;
+};
+BI.videoLabel = function(cfg, v){
+  const bv = BI.bvid(cfg, v);
+  if(bv) return `BV: ${bv} · 第 ${v.page||1} P`;
+  return (v.page ? `第 ${v.page} 部分` : "视频") + "（暂无预设链接，可在B站搜索标题）";
+};
+
+/* ---------- 状态 ---------- */
+BI.state = function(cfg){
+  if(!cfg._bi) cfg._bi = { totalDays: 10, plan: [], toastTimer: null, videoIdx: 0 };
+  return cfg._bi;
+};
+
+/* ---------- 数据读写 ---------- */
+BI.loadData = function(cfg){
+  try{ return JSON.parse(localStorage.getItem(cfg.storageKey)) || {}; }catch(e){ return {}; }
+};
+BI.saveData = function(cfg, data){ localStorage.setItem(cfg.storageKey, JSON.stringify(data)); };
+
+/* ---------- 构建当前计划（按配置天数均匀分配） ---------- */
+BI.buildPlan = function(cfg){
+  const st = BI.state(cfg);
+  const source = cfg.planSource || [];
+  const savedDays = parseInt(localStorage.getItem(cfg.daysKey) || "0");
+  st.totalDays = savedDays > 0 ? savedDays : (source.length || 10);
+  if(st.totalDays === source.length){
+    st.plan = source.map(p=>({day:p.day, title:p.title, desc:p.desc, goal:p.goal, videos:p.videos, points:p.points||[]}));
+    return st.plan;
   }
-];
-
-/* 版本号检查：如果预填充内容更新了，自动重置用户的_content为新的计划（不影响打卡记录） */
-(function ugCheckPlanVersion(){
-  const lastVer = localStorage.getItem(UG_PLAN_VER_KEY);
-  if(lastVer !== UG_PLAN_VERSION){
-    // 只有_content从未被用户手动编辑过时才自动重置
-    const savedContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
-    const hasUserEdit = Object.keys(savedContent).some(k=>{
-      const c = savedContent[k];
-      return c && (c._userEdited);
-    });
-    if(!hasUserEdit){
-      const freshContent = {};
-      UG_ORIGINAL_PLAN.forEach(p=>{ freshContent[p.day] = {title:p.title, desc:p.desc, goal:p.goal, videos:p.videos, points:p.points||[]}; });
-      localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(freshContent));
+  const rd = BI.redistribute(cfg, st.totalDays);
+  if(rd){
+    st.plan = [];
+    for(let d=1; d<=st.totalDays; d++){
+      const item = rd[d] || rd[String(d)];
+      st.plan.push({day:d, title:item.title||`第 ${d} 天`, desc:item.goal||"", goal:item.goal||"", videos:item.videos||[], points:item.knowledge||item.points||[]});
     }
-    localStorage.setItem(UG_PLAN_VER_KEY, UG_PLAN_VERSION);
+  } else {
+    st.plan = source.slice(0, Math.min(st.totalDays, source.length));
   }
-})();
+  return st.plan;
+};
 
-/* 加载某天的内容（优先用用户编辑过的_content，否则用预填充计划） */
-function ugLoadDayContent(day){
-  const all = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
-  const saved = all[day] || all[String(day)];
-  if(saved && (saved.title || saved.goal || (saved.videos && saved.videos.length) || (saved.points && saved.points.length))){
-    return Object.assign({videos:[],points:[],desc:""}, saved);
-  }
-  const orig = UG_ORIGINAL_PLAN.find(p=>p.day===day);
-  if(orig) return {title:orig.title, desc:orig.desc, goal:orig.goal, videos:orig.videos, points:orig.points||[]};
-  return {title:`第 ${day} 天`, desc:"", goal:"", videos:[], points:[]};
-}
-
-/* 保存某天的内容（写入_content，标记用户编辑） */
-function ugSaveDayContent(day, content){
-  const all = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
-  all[day] = Object.assign({}, content, {_userEdited:true});
-  localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(all));
-}
-
-/* 生成当前UG打卡计划：按UG_TOTAL_DAYS从所有视频和知识点均匀分配 */
-let ugPlan = [];
-function ugBuildCurrentPlan(){
-  if(UG_TOTAL_DAYS === UG_ORIGINAL_PLAN.length){
-    // 天数没变，直接用原始10天结构（保证向后兼容显示）
-    ugPlan = UG_ORIGINAL_PLAN.map(p=>({
-      day: p.day, title: p.title, desc: p.desc, goal: p.goal, videos: p.videos, points: p.points||[]
-    }));
-    return ugPlan;
-  }
-  const redistributed = ugRedistributePlan(UG_TOTAL_DAYS);
-  if(!redistributed){
-    ugPlan = UG_ORIGINAL_PLAN.slice(0, Math.min(UG_TOTAL_DAYS, UG_ORIGINAL_PLAN.length));
-    return ugPlan;
-  }
-  ugPlan = [];
-  for(let d=1; d<=UG_TOTAL_DAYS; d++){
-    const item = redistributed[d] || redistributed[String(d)];
-    ugPlan.push({
-      day: d,
-      title: item.title || `第 ${d} 天`,
-      desc: item.goal || "",
-      goal: item.goal || "",
-      videos: item.videos || [],
-      points: item.knowledge || item.points || []
-    });
-  }
-  return ugPlan;
-}
-
-/* 把所有UG学习内容（视频和知识点）扁平化成列表，然后平均分配到新天数
-   无论多少天，内容总量保持不变，只是每天分配的数量不同 */
-function ugRedistributePlan(newDays){
-  const savedContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
-  const preset = UG_ORIGINAL_PLAN;
-
-  // 收集所有视频和知识点，扁平化成列表
-  const allVideos = [];
-  const allKnowledge = [];
-  const allGoals = [];
-
-  // 先从 _content 收集（用户可能编辑过）
+/* 均匀重分配：所有视频/知识点摊到 newDays 天，内容总量不变 */
+BI.redistribute = function(cfg, newDays){
+  const savedContent = JSON.parse(localStorage.getItem(cfg.contentKey) || "{}");
+  const preset = cfg.planSource || [];
+  const allVideos = [], allKnowledge = [], allGoals = [];
   const existingDays = Object.keys(savedContent).map(Number).sort((a,b)=>a-b);
   const maxDay = Math.max(...existingDays, preset.length, 0);
-
   for(let d=1; d<=maxDay; d++){
     let item = savedContent[d] || savedContent[String(d)];
     const hasContent = item && (item.title || item.goal || (item.videos && item.videos.length) || (item.points && item.points.length) || (item.knowledge && item.knowledge.length));
@@ -1924,104 +1567,78 @@ function ugRedistributePlan(newDays){
     if(kps.length) allKnowledge.push(...kps);
     if(item.goal) allGoals.push(item.goal);
   }
-
-  // 如果_content没有有效数据，从UG_ORIGINAL_PLAN收集
   if(allVideos.length === 0 && allKnowledge.length === 0){
-    for(let i=0; i<preset.length; i++){
-      const p = preset[i];
+    preset.forEach(p=>{
       if(p.videos) allVideos.push(...p.videos);
       if(p.points && p.points.length) allKnowledge.push(...p.points);
       if(p.goal) allGoals.push(p.goal);
-    }
+    });
   }
-
   if(allVideos.length === 0 && allKnowledge.length === 0) return null;
-
-  // 均匀分配函数（与template.html中的distributeEvenly一致）
   function distributeEvenly(items, days){
     const groups = [];
     const total = items.length;
-    if(total === 0){
-      for(let d=0; d<days; d++) groups.push([]);
-      return groups;
-    }
+    if(total === 0){ for(let d=0; d<days; d++) groups.push([]); return groups; }
     const base = Math.floor(total / days);
     const remainder = total % days;
     let idx = 0;
     for(let d=1; d<=days; d++){
       const count = base + (d <= remainder ? 1 : 0);
-      const group = items.slice(idx, idx + count);
-      groups.push(group);
+      groups.push(items.slice(idx, idx + count));
       idx += count;
     }
     return groups;
   }
-
   const videoGroups = distributeEvenly(allVideos, newDays);
   const kpGroups = distributeEvenly(allKnowledge, newDays);
-
-  // 生成新的学习计划（key为天数，格式与redistributePlan一致）
   const result = {};
   for(let nd=1; nd<=newDays; nd++){
-    const vids = videoGroups[nd - 1] || [];
-    const kps = kpGroups[nd - 1] || [];
-
+    const vids = videoGroups[nd-1] || [];
+    const kps = kpGroups[nd-1] || [];
     const pages = vids.map(v=>v.page||'?').filter((v,i,a)=>a.indexOf(v)===i).join('、');
     let title;
-    if(vids.length){
-      title = nd === 1 ? `第 ${pages} 集（共 ${allVideos.length} 集，${newDays} 天学完）` : `第 ${pages} 集`;
-    } else if(kps.length){
-      title = `第 ${nd} 天（知识点复习，${kps.length} 条）`;
-    } else {
-      title = `第 ${nd} 天（休息/复习）`;
-    }
+    if(vids.length) title = nd===1 ? `第 ${pages} 集（共 ${allVideos.length} 集，${newDays} 天学完）` : `第 ${pages} 集`;
+    else if(kps.length) title = `第 ${nd} 天（知识点复习，${kps.length} 条）`;
+    else title = `第 ${nd} 天（休息/复习）`;
     let goal = "";
-    if(nd === 1 && allGoals.length){
-      goal = allGoals[0];
-    } else if(vids.length === 0 && kps.length === 0){
-      goal = "本日休息或复习已学内容";
-    } else {
-      goal = `学习第 ${vids.map(v=>v.page||'?').join('、') || (kps.length + ' 条知识点')}`;
-    }
+    if(nd===1 && allGoals.length) goal = allGoals[0];
+    else if(vids.length===0 && kps.length===0) goal = "本日休息或复习已学内容";
+    else goal = `学习第 ${vids.map(v=>v.page||'?').join('、') || (kps.length + ' 条知识点')}`;
     result[nd] = {title, goal, videos: vids, knowledge: kps};
   }
   return result;
-}
+};
 
-/* 初始化构建当前计划 */
-ugBuildCurrentPlan();
+/* 预填充版本检查：内容更新时自动刷新（不影响打卡记录与笔记） */
+BI.checkPlanVersion = function(cfg){
+  const lastVer = localStorage.getItem(cfg.planVerKey);
+  if(lastVer !== cfg.planVersion){
+    const savedContent = JSON.parse(localStorage.getItem(cfg.contentKey) || "{}");
+    const hasUserEdit = Object.keys(savedContent).some(k=>{
+      const c = savedContent[k];
+      return c && c._userEdited;
+    });
+    if(!hasUserEdit){
+      const fresh = {};
+      (cfg.planSource || []).forEach(p=>{
+        fresh[p.day] = {title:p.title, desc:p.desc, goal:p.goal, videos:p.videos, points:p.points||[]};
+      });
+      localStorage.setItem(cfg.contentKey, JSON.stringify(fresh));
+    }
+    localStorage.setItem(cfg.planVerKey, cfg.planVersion);
+  }
+};
 
-/* 工具函数 */
-function ugLoadData(){
-  try{return JSON.parse(localStorage.getItem(UG_STORAGE_KEY)) || {};}
-  catch(e){return {};}
-}
-function ugSaveData(data){
-  localStorage.setItem(UG_STORAGE_KEY,JSON.stringify(data));
-}
-function ugGetBvid(video){return video.bvid || UG_BASE_BVID;}
-function ugGetEmbedUrl(video){
-  const bvid = ugGetBvid(video);
-  return `https://player.bilibili.com/player.html?bvid=${bvid}&page=${video.page||1}&high_quality=1&danmaku=0&autoplay=0&as_wide=1`;
-}
-function ugGetVideoLink(video){
-  const bvid = ugGetBvid(video);
-  return `https://www.bilibili.com/video/${bvid}/?p=${video.page||1}`;
-}
-function ugGetVideoLabel(video){
-  const bvid = ugGetBvid(video);
-  return `BV: ${bvid} · 第 ${video.page||1} P`;
-}
-
-/* 渲染日历 */
-function ugRenderCalendar(){
-  const data = ugLoadData();
-  const grid = document.getElementById("ugCalendarGrid");
+/* ---------- 渲染日历 ---------- */
+BI.renderCalendar = function(cfg){
+  const st = BI.state(cfg);
+  const data = BI.loadData(cfg);
+  const grid = BI.el(cfg, "CalendarGrid");
   if(!grid) return;
   grid.innerHTML = "";
   let doneCount = 0;
   let unlocked = true;
-  ugPlan.forEach((p,idx)=>{
+  st.plan.forEach(p=>{
     const dayData = data[p.day] || {};
     const isDone = dayData.checked === true;
     if(isDone) doneCount++;
@@ -2037,66 +1654,46 @@ function ugRenderCalendar(){
       <div class="day-title">${p.title}</div>
       <div class="day-desc">${p.desc}</div>
     `;
-    if(unlocked){
-      card.addEventListener("click",()=>ugOpenDayModal(p.day));
-    }
+    if(unlocked) card.addEventListener("click", ()=>BI.openDayModal(cfg, p.day));
     grid.appendChild(card);
     unlocked = isDone;
   });
-  document.getElementById("ugDoneCount").textContent = doneCount;
-  const tcEl = document.getElementById("ugTotalCount");
-  if(tcEl) tcEl.textContent = String(UG_TOTAL_DAYS);
-  document.getElementById("ugProgressFill").style.width = (doneCount / UG_TOTAL_DAYS * 100) + "%";
-}
-/* UG打卡JS后续部分在下一个script块 */
-</script>
+  const dc = BI.el(cfg, "DoneCount"); if(dc) dc.textContent = doneCount;
+  const tc = BI.el(cfg, "TotalCount"); if(tc) tc.textContent = String(st.totalDays);
+  const pf = BI.el(cfg, "ProgressFill"); if(pf) pf.style.width = (doneCount / st.totalDays * 100) + "%";
+  const ht = BI.el(cfg, "HeaderTitle");
+  if(ht) ht.innerHTML = `<span class="logo">${cfg.name}</span> 自学打卡日历 · ${st.totalDays}天冲刺`;
+  const hd = BI.el(cfg, "HeaderDesc");
+  if(hd) hd.textContent = cfg.headerDesc || (cfg.name + " 学习计划，每天学习 + 笔记打卡");
+};
 
-<script>
-/* ============ UG打卡日历 - 第二部分（弹窗、Word导出、事件绑定） ============ */
-let ugToastTimer = null;
-
-/* 打开某天打卡详情 */
-function ugOpenDayModal(day){
-  const p = ugPlan.find(x=>x.day===day);
+/* ---------- 打开某天打卡详情 ---------- */
+BI.openDayModal = function(cfg, day){
+  const st = BI.state(cfg);
+  const p = st.plan.find(x=>x.day===day);
   if(!p) return;
-  const data = ugLoadData();
+  const data = BI.loadData(cfg);
   const dayData = data[day] || {};
-  document.getElementById("ugModalDayLabel").textContent = `DAY ${day} · 共 ${UG_TOTAL_DAYS} 天`;
-  document.getElementById("ugModalTitle").textContent = p.title;
-
-  // 先停止所有可能存在的视频
-  ugStopAllVideos();
-  ugCurrentVideoIdx = 0;
-
+  const L = BI.el(cfg, "ModalDayLabel"); if(L) L.textContent = `DAY ${day} · 共 ${st.totalDays} 天`;
+  const T = BI.el(cfg, "ModalTitle"); if(T) T.textContent = p.title;
+  BI.stopAllVideos(cfg);
+  st.videoIdx = 0;
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const kpCard = kps => (kps && kps.length)
+    ? `<div class="kp-card"><div class="kp-title">📘 本课知识点预习/复习</div><ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul></div>`
+    : "";
   let videoHtml = "";
-  
   if(isMobile){
-    // 手机端：所有视频都是唤起B站App的卡片
-    p.videos.forEach((v,i)=>{
-      const link = ugGetVideoLink(v);
-      const label = ugGetVideoLabel(v);
+    p.videos.forEach(v=>{
+      const link = BI.videoLink(cfg, v);
+      const label = BI.videoLabel(cfg, v);
       const kps = v.knowledge || [];
-      const kpHtml = kps.length ? `<div class="kp-card">
-        <div class="kp-title">📘 本课知识点预习/复习</div>
-        <ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul>
-      </div>` : "";
-      videoHtml += `
-        <div class="video-item">
-          <div class="video-mobile-card">
-            <div class="vm-icon">📺</div>
-            <div class="vm-title">${v.title}</div>
-            <div class="vm-desc">${label}</div>
-            <a href="${link}" class="app-open-btn">
-              📱 在B站App中打开
-              <small>点击跳转B站App播放</small>
-            </a>
-          </div>
-          ${kpHtml}
-        </div>`;
+      const card = link
+        ? `<div class="video-mobile-card"><div class="vm-icon">📺</div><div class="vm-title">${v.title}</div><div class="vm-desc">${label}</div><a href="${link}" class="app-open-btn">📱 在B站App中打开<small>点击跳转B站App播放</small></a></div>`
+        : `<div class="video-mobile-card"><div class="vm-icon">📺</div><div class="vm-title">${v.title}</div><div class="vm-desc">${label}</div></div>`;
+      videoHtml += `<div class="video-item">${card}${kpCard(kps)}</div>`;
     });
   } else {
-    // 电脑端：单 iframe 方案（无视频时不渲染 iframe，仅显示知识点）
     if(!p.videos || p.videos.length === 0){
       videoHtml = `<div class="video-item" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:16px;text-align:center;color:var(--text-dim);">
         <div style="font-size:24px;margin-bottom:6px;">🧘</div>
@@ -2105,57 +1702,55 @@ function ugOpenDayModal(day){
       </div>`;
     } else {
       const firstVideo = p.videos[0];
-      const firstLink = ugGetVideoLink(firstVideo);
-      const firstLabel = ugGetVideoLabel(firstVideo);
-      const firstEmbed = ugGetEmbedUrl(firstVideo);
-      const firstKps = firstVideo.knowledge || [];
-      const firstKpHtml = firstKps.length ? `<div class="kp-card">
-        <div class="kp-title">📘 本课知识点预习/复习</div>
-        <ul>${firstKps.map(k=>`<li>${k}</li>`).join("")}</ul>
-      </div>` : "";
-      
-      // 主播放区域（只有一个 iframe）
-      videoHtml += `
-        <div class="video-item" style="margin-bottom:16px;">
-          <iframe id="ug-main-video-iframe" src="${firstEmbed}"
+      const firstLink = BI.videoLink(cfg, firstVideo);
+      const firstLabel = BI.videoLabel(cfg, firstVideo);
+      const firstEmbed = BI.embedUrl(cfg, firstVideo);
+      const firstKpHtml = kpCard(firstVideo.knowledge || []);
+      videoHtml += `<div class="video-item" style="margin-bottom:16px;">`;
+      if(firstEmbed){
+        videoHtml += `
+          <iframe id="${BI.id(cfg, "-main-video-iframe")}" src="${firstEmbed}"
             scrolling="no" border="0" frameborder="no" framespacing="0"
-            allowfullscreen="true"
-            referrerpolicy="no-referrer"
+            allowfullscreen="true" referrerpolicy="no-referrer"
             allow="fullscreen; encrypted-media; picture-in-picture"
             sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"></iframe>
           <div class="video-meta">
             <div>
-              <div class="video-title" id="ug-current-video-title">▶ ${firstVideo.title}</div>
+              <div class="video-title" id="${BI.id(cfg, "-current-video-title")}">▶ ${firstVideo.title}</div>
               <div class="src">${firstLabel}</div>
             </div>
-            <div id="ug-current-video-meta"><a href="${firstLink}" target="_blank">在 B站 原页观看 →</a></div>
+            <div id="${BI.id(cfg, "-current-video-meta")}"><a href="${firstLink}" target="_blank">在 B站 原页观看 →</a></div>
           </div>
-          <div id="ug-current-video-kp">${firstKpHtml}</div>
-        </div>`;
-      
-      // 其他视频切换按钮
+          <div id="${BI.id(cfg, "-current-video-kp")}">${firstKpHtml}</div>`;
+      } else {
+        videoHtml += `
+          <div style="padding:16px;border-bottom:1px solid var(--ug-border);">
+            <div class="video-title">▶ ${firstVideo.title}</div>
+            <div class="src" style="margin:6px 0 12px;">${firstLabel}</div>
+            ${firstKpHtml}
+          </div>`;
+      }
+      videoHtml += `</div>`;
       if(p.videos.length > 1){
         videoHtml += `<div style="margin-top:12px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">📋 视频列表（点击切换）</div>`;
         videoHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">`;
         p.videos.forEach((v,i)=>{
           if(i === 0) return;
-          const label = ugGetVideoLabel(v);
           videoHtml += `
-            <button style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(24,144,255,.1);border:1px solid rgba(24,144,255,.3);color:var(--primary,#1890FF);border-radius:6px;cursor:pointer;" onclick="ugSwitchVideo(${i}, ${day})">
+            <button style="padding:10px 12px;font-size:12px;text-align:left;background:rgba(24,144,255,.1);border:1px solid rgba(24,144,255,.3);color:var(--primary,#1890FF);border-radius:6px;cursor:pointer;" onclick="BI.switchVideo('${cfg.id}', ${i}, ${day})">
               <div style="font-weight:500;">${v.title}</div>
-              <div style="font-size:11px;opacity:.7;">${label}</div>
+              <div style="font-size:11px;opacity:.7;">${BI.videoLabel(cfg, v)}</div>
             </button>`;
         });
         videoHtml += `</div></div>`;
       }
     }
   }
-
   const pointsHtml = p.points.map(pt=>`<li>${pt}</li>`).join("");
   const isDone = dayData.checked === true;
   const savedNote = dayData.notes || "";
-
-  document.getElementById("ugModalBody").innerHTML = `
+  const body = BI.el(cfg, "ModalBody");
+  body.innerHTML = `
     <div class="goal-block">
       <div class="label">学习目标</div>
       <div class="text">${p.goal}</div>
@@ -2167,234 +1762,222 @@ function ugOpenDayModal(day){
     <div class="video-section">
       <h3>学习视频（点击切换，仅播放一个）</h3>
       ${videoHtml}
-      <div class="extra-resources">
-        <h4>本日学习视频所属教程</h4>
-        <a href="https://www.bilibili.com/video/BV1SYJc6MEWJ/" target="_blank">UG12.0从入门到精通教程，25节课全面了解UG（本打卡计划基础教程）</a>
-        <div class="src">作者：软考教程官方 · 共25节${(p.videos && p.videos.length)?' · 本日为该合集第 ' + p.videos.map(v=>v.page).join('、') + ' P':''}</div>
-        <h4 style="margin-top:10px;">延伸资源（学完25节后进阶）</h4>
-        <a href="https://www.bilibili.com/video/BV1YnAkegEnx/" target="_blank">UG12.0全网最骚操作零基础入门到精通（109节，含装配全流程）</a>
-        <a href="https://www.bilibili.com/video/av315225956" target="_blank">UG NX12.0 零基础入门教程（23节，另一老师讲解）</a>
-        <a href="https://www.bilibili.com/video/BV1y5411o7Qj" target="_blank">B站最全 UG 制图/出图教程（10节，工程图进阶）</a>
-        <a href="https://www.bilibili.com/video/BV1BZ4y1B7ak" target="_blank">NX12 入门 - 装配模块（装配进阶）</a>
-        <div class="src">提示：以上资源均来自哔哩哔哩，如有失效请在 B站 搜索关键词「UG NX12」</div>
-      </div>
+      ${BI.extraResourcesHtml(cfg)}
     </div>
     <div class="note-section">
       <h3>学习笔记 / 打卡内容</h3>
       <div class="hint">请输入今日学习心得或操作要点（至少 <b>30 字</b>方可打卡完成）：</div>
-      <textarea id="ugNoteInput" placeholder="例如：今天学习了草图的基本命令，包括轮廓、直线、圆弧的绘制，了解了草图平面的选择方式，能完成简单几何图形的绘制并标注尺寸……">${savedNote}</textarea>
-      <div class="word-count" id="ugWordCount">已输入 0 字</div>
+      <textarea id="${BI.id(cfg, "NoteInput")}" placeholder="记录今天学了什么、做了什么练习、遇到什么问题……">${savedNote}</textarea>
+      <div class="word-count" id="${BI.id(cfg, "WordCount")}">已输入 0 字</div>
     </div>
     <div class="checkin-bar">
-      <div class="checkin-status ${isDone?'done':''}" id="ugCheckinStatus">
+      <div class="checkin-status ${isDone?'done':''}" id="${BI.id(cfg, "CheckinStatus")}">
         ${isDone?'✓ 本日已打卡完成':'尚未打卡'}
       </div>
       <div style="display:flex;gap:10px;">
-        <button class="export-btn" id="ugExportDayBtn">导出本日笔记(Word)</button>
-        <button class="checkin-btn ${isDone?'success':''}" id="ugCheckinBtn" ${isDone?'disabled':''}>
+        <button class="export-btn" id="${BI.id(cfg, "ExportDayBtn")}">导出本日笔记(Word)</button>
+        <button class="checkin-btn ${isDone?'success':''}" id="${BI.id(cfg, "CheckinBtn")}" ${isDone?'disabled':''}>
           ${isDone?'已完成打卡':'完成打卡'}
         </button>
       </div>
     </div>
   `;
-
-  document.getElementById("ugModalMask").classList.add("active");
+  const mask = BI.el(cfg, "ModalMask");
+  if(mask) mask.classList.add("active");
   document.body.style.overflow = "hidden";
-
-  const noteInput = document.getElementById("ugNoteInput");
-  const wordCount = document.getElementById("ugWordCount");
-  const checkinBtn = document.getElementById("ugCheckinBtn");
-
-  function updateCount(){
+  const noteInput = BI.el(cfg, "NoteInput");
+  const wordCount = BI.el(cfg, "WordCount");
+  const checkinBtn = BI.el(cfg, "CheckinBtn");
+  const updateCount = ()=>{
     const len = noteInput.value.trim().length;
     wordCount.textContent = `已输入 ${len} 字`;
-    wordCount.classList.toggle("ok",len>=30);
-    if(!isDone){
-      checkinBtn.disabled = len < 30;
-    }
-  }
+    wordCount.classList.toggle("ok", len >= 30);
+    if(!isDone) checkinBtn.disabled = len < 30;
+  };
   updateCount();
-  noteInput.addEventListener("input",()=>{
+  noteInput.addEventListener("input", ()=>{
     updateCount();
-    const d = ugLoadData();
+    const d = BI.loadData(cfg);
     if(!d[day]) d[day] = {};
     d[day].notes = noteInput.value;
-    ugSaveData(d);
+    BI.saveData(cfg, d);
   });
-
-  checkinBtn.addEventListener("click",()=>{
+  checkinBtn.addEventListener("click", ()=>{
     const len = noteInput.value.trim().length;
     if(len < 30){
-      ugShowToast("请输入至少 30 字的学习笔记再打卡","error");
+      BI.toast(cfg, "请输入至少 30 字的学习笔记再打卡", "error");
       return;
     }
-    const d = ugLoadData();
+    const d = BI.loadData(cfg);
     d[day] = {checked:true, notes:noteInput.value, time:new Date().toISOString()};
-    ugSaveData(d);
-    ugShowToast(`DAY ${day} 打卡成功！坚持就是胜利 🎉`);
+    BI.saveData(cfg, d);
+    BI.toast(cfg, `DAY ${day} 打卡成功！坚持就是胜利 🎉`);
     checkinBtn.classList.add("success");
     checkinBtn.textContent = "已完成打卡";
     checkinBtn.disabled = true;
-    document.getElementById("ugCheckinStatus").classList.add("done");
-    document.getElementById("ugCheckinStatus").textContent = "✓ 本日已打卡完成";
-    setTimeout(()=>{ ugRenderCalendar(); if(typeof renderList==='function') renderList(); },300);
+    const cs = BI.el(cfg, "CheckinStatus");
+    if(cs){
+      cs.classList.add("done");
+      cs.textContent = "✓ 本日已打卡完成";
+    }
+    setTimeout(()=>{ BI.renderCalendar(cfg); if(typeof renderList==='function') renderList(); }, 300);
   });
-
-  document.getElementById("ugExportDayBtn").addEventListener("click",()=>{
+  BI.el(cfg, "ExportDayBtn").addEventListener("click", ()=>{
     const noteText = noteInput.value.trim();
     if(!noteText){
-      ugShowToast("请先输入学习笔记再导出","error");
+      BI.toast(cfg, "请先输入学习笔记再导出", "error");
       return;
     }
-    ugExportDayToWord(day, noteText);
-    ugShowToast(`DAY ${day} 笔记已导出为 Word 文档`);
+    BI.exportDay(cfg, day, noteText);
+    BI.toast(cfg, `DAY ${day} 笔记已导出为 Word 文档`);
   });
-}
+};
 
-/* ============ 视频控制（UG打卡视图） - 单 iframe 方案 ============ */
-let ugCurrentVideoIdx = 0; // 当前播放的视频索引
-
-function ugStopAllVideos(){
-  const iframe = document.getElementById("ug-main-video-iframe");
-  if(iframe){
-    iframe.src = "about:blank";
+BI.extraResourcesHtml = function(cfg){
+  if(!cfg.tutorial && !(cfg.extraResources && cfg.extraResources.length)) return "";
+  let html = `<div class="extra-resources">`;
+  if(cfg.tutorial){
+    html += `<h4>本日学习视频所属教程</h4>
+      <a href="${cfg.tutorial.url}" target="_blank">${cfg.tutorial.name}（本打卡计划基础教程）</a>
+      <div class="src">${cfg.tutorial.desc || ""}</div>`;
   }
-}
+  if(cfg.extraResources && cfg.extraResources.length){
+    html += `<h4 style="margin-top:10px;">延伸资源（学完后进阶）</h4>` + cfg.extraResources.map(r=>`<a href="${r.url}" target="_blank">${r.title}</a>`).join("");
+    html += `<div class="src">提示：以上资源均来自哔哩哔哩，如有失效请在 B站 搜索关键词「${cfg.name}」</div>`;
+  }
+  return html + `</div>`;
+};
 
-/* ============ 视频切换（仅同时播放一个） ============ */
-function ugSwitchVideo(targetIdx, day){
-  const p = ugPlan.find(x=>x.day===day);
+/* ---------- 视频控制（单 iframe） ---------- */
+BI.stopAllVideos = function(cfg){
+  const iframe = BI.el(cfg, "-main-video-iframe");
+  if(iframe) iframe.src = "about:blank";
+};
+BI.switchVideo = function(id, targetIdx, day){
+  const cfg = BUILTIN_CONFIGS[id];
+  if(!cfg) return;
+  const st = BI.state(cfg);
+  const p = st.plan.find(x=>x.day===day);
   if(!p || !p.videos[targetIdx]) return;
-  
   const v = p.videos[targetIdx];
-  const bv = v.bv;
-  if(!bv) return;
-  
-  const link = ugGetVideoLink(v);
-  const embed = ugGetEmbedUrl(v).replace('autoplay=0', 'autoplay=1');
-  
-  ugCurrentVideoIdx = targetIdx;
-  
-  // 直接修改 iframe 的 src
-  const iframe = document.getElementById("ug-main-video-iframe");
-  if(iframe){
-    iframe.src = embed;
+  const link = BI.videoLink(cfg, v);
+  const embed = BI.embedUrl(cfg, v).replace("autoplay=0", "autoplay=1");
+  if(!embed){
+    BI.toast(cfg, "该视频暂无预设链接，可在 B站 搜索标题观看");
+    return;
   }
-  
-  // 更新视频标题显示
-  const titleEl = document.getElementById("ug-current-video-title");
-  if(titleEl){
-    titleEl.innerHTML = `▶ ${v.title}`;
-  }
-  const metaEl = document.getElementById("ug-current-video-meta");
-  if(metaEl){
-    metaEl.innerHTML = `<a href="${link}" target="_blank">在 B站 原页观看 →</a>`;
-  }
-  // 更新知识点
+  st.videoIdx = targetIdx;
+  const iframe = BI.el(cfg, "-main-video-iframe");
+  if(iframe) iframe.src = embed;
+  const titleEl = BI.el(cfg, "-current-video-title");
+  if(titleEl) titleEl.innerHTML = `▶ ${v.title}`;
+  const metaEl = BI.el(cfg, "-current-video-meta");
+  if(metaEl) metaEl.innerHTML = `<a href="${link}" target="_blank">在 B站 原页观看 →</a>`;
   const kps = v.knowledge || [];
-  const kpEl = document.getElementById("ug-current-video-kp");
-  if(kpEl){
-    if(kps.length){
-      kpEl.innerHTML = `<div class="kp-card">
-        <div class="kp-title">📘 本课知识点预习/复习</div>
-        <ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul>
-      </div>`;
-    } else {
-      kpEl.innerHTML = "";
-    }
-  }
-}
-
-function ugCloseDayModal(){
-  // 关闭时停止所有视频播放
-  ugStopAllVideos();
-  document.getElementById("ugModalMask").classList.remove("active");
+  const kpEl = BI.el(cfg, "-current-video-kp");
+  if(kpEl) kpEl.innerHTML = kps.length
+    ? `<div class="kp-card"><div class="kp-title">📘 本课知识点预习/复习</div><ul>${kps.map(k=>`<li>${k}</li>`).join("")}</ul></div>`
+    : "";
+};
+BI.closeDayModal = function(cfg){
+  BI.stopAllVideos(cfg);
+  const mask = BI.el(cfg, "ModalMask");
+  if(mask) mask.classList.remove("active");
   document.body.style.overflow = "";
   if(typeof renderList==='function') renderList();
-}
+};
 
-/* Toast */
-function ugShowToast(msg,type){
-  const t = document.getElementById("ugToast");
+/* ---------- Toast ---------- */
+BI.toast = function(cfg, msg, type){
+  const st = BI.state(cfg);
+  const t = BI.el(cfg, "Toast");
   if(!t) return;
   t.textContent = msg;
-  t.className = "ug-toast show" + (type==="error"?" error":"");
-  clearTimeout(ugToastTimer);
-  ugToastTimer = setTimeout(()=>{t.className = "ug-toast";},2600);
-}
+  t.className = "ug-toast show" + (type === "error" ? " error" : "");
+  clearTimeout(st.toastTimer);
+  st.toastTimer = setTimeout(()=>{ t.className = "ug-toast"; }, 2600);
+};
 
-/* Word 文档导出 */
-function ugNl2br(s){return (s||"").replace(/\r\n/g,"\n").replace(/\n/g,"<br>");}
-function ugEsc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function ugBuildDayHtml(p, noteText, dayData){
-  const pointsHtml = p.points.map(pt=>`<li>${ugEsc(pt)}</li>`).join("");
+/* ---------- Word 导出 ---------- */
+BI.nl2br = function(s){ return (s||"").replace(/\r\n/g,"\n").replace(/\n/g,"<br>"); };
+BI.esc = function(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+BI.buildDayHtml = function(cfg, p, noteText, dayData){
+  const pointsHtml = p.points.map(pt=>`<li>${BI.esc(pt)}</li>`).join("");
   const videosHtml = p.videos.map(v=>{
-    const link = ugGetVideoLink(v);
-    const label = ugGetVideoLabel(v);
+    const link = BI.videoLink(cfg, v);
+    const label = BI.videoLabel(cfg, v);
     const kps = v.knowledge || [];
-    const kpHtml = kps.length ? `<div style="border:1px solid #bcd7f0;background:#f2f8ff;padding:10px 16px;margin:6px 0 12px;border-radius:5px;"><b style="color:#40A9FF;">📘 本课知识点：</b><ul style="margin:6px 0 0 18px;padding:0;font-size:12px;line-height:1.7;">${kps.map(k=>`<li>${ugEsc(k)}</li>`).join("")}</ul></div>` : "";
-    return `<p style="margin:10px 0 2px;"><b>▶ ${ugEsc(v.title)}</b><br><span style="color:#666;font-size:12px;">${ugEsc(label)} | <a href="${link}">${link}</a></span></p>${kpHtml}`;
+    const kpHtml = kps.length
+      ? `<div style="border:1px solid #bcd7f0;background:#f2f8ff;padding:10px 16px;margin:6px 0 12px;border-radius:5px;"><b style="color:#40A9FF;">📘 本课知识点：</b><ul style="margin:6px 0 0 18px;padding:0;font-size:12px;line-height:1.7;">${kps.map(k=>`<li>${BI.esc(k)}</li>`).join("")}</ul></div>`
+      : "";
+    const linkHtml = link ? ` | <a href="${link}">${link}</a>` : "（暂无预设链接，可在B站搜索标题）";
+    return `<p style="margin:10px 0 2px;"><b>▶ ${BI.esc(v.title)}</b><br><span style="color:#666;font-size:12px;">${BI.esc(label)}${linkHtml}</span></p>${kpHtml}`;
   }).join("");
   const checkTime = dayData && dayData.time ? new Date(dayData.time).toLocaleString("zh-CN") : "未打卡";
   const statusText = dayData && dayData.checked ? "✓ 已完成打卡" : "未打卡";
+  const tLine = cfg.tutorial
+    ? `<p style="text-align:center;color:#999;font-size:11px;">本文档由 ${cfg.name} 自学打卡日历生成 | 基础教程：${cfg.tutorial.url||""}《${cfg.tutorial.name||""}》</p>`
+    : `<p style="text-align:center;color:#999;font-size:11px;">本文档由 ${cfg.name} 自学打卡日历生成</p>`;
   return `
-    <h1 style="color:#40A9FF;text-align:center;">UG NX 12.0 学习笔记</h1>
-    <h2 style="text-align:center;color:#333;">DAY ${p.day} · ${ugEsc(p.title)}</h2>
+    <h1 style="color:#40A9FF;text-align:center;">${cfg.name} 学习笔记</h1>
+    <h2 style="text-align:center;color:#333;">DAY ${p.day} · ${BI.esc(p.title)}</h2>
     <p style="text-align:center;color:#666;">打卡状态：${statusText} | 打卡时间：${checkTime}</p>
     <hr>
     <h3 style="color:#40A9FF;">一、学习目标</h3>
-    <p>${ugEsc(p.goal)}</p>
+    <p>${BI.esc(p.goal)}</p>
     <h3 style="color:#40A9FF;">二、学习要点</h3>
     <ul>${pointsHtml}</ul>
     <h3 style="color:#40A9FF;">三、学习视频（B站）</h3>
     ${videosHtml}
     <h3 style="color:#40A9FF;">四、学习笔记</h3>
-    <div style="border:1px solid #ccc;padding:12px;background:#fafafa;min-height:120px;white-space:pre-wrap;">${ugEsc(noteText)}</div>
+    <div style="border:1px solid #ccc;padding:12px;background:#fafafa;min-height:120px;white-space:pre-wrap;">${BI.esc(noteText)}</div>
     <hr>
-    <p style="text-align:center;color:#999;font-size:11px;">本文档由 UG NX 12.0 自学打卡日历生成 | 基础教程：BV1SYJc6MEWJ《UG12.0从入门到精通 25节课》</p>
+    ${tLine}
   `;
-}
-function ugExportDayToWord(day, noteText){
-  const p = ugPlan.find(x=>x.day===day);
+};
+BI.exportDay = function(cfg, day, noteText){
+  const st = BI.state(cfg);
+  const p = st.plan.find(x=>x.day===day);
   if(!p) return;
-  const data = ugLoadData();
+  const data = BI.loadData(cfg);
   const dayData = data[day] || {};
-  const html = ugBuildDayHtml(p, noteText, dayData);
-  const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>DAY${day}_UG_NX12_学习笔记</title></head><body>${html}</body></html>`;
+  const html = BI.buildDayHtml(cfg, p, noteText, dayData);
+  const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>DAY${day}_${cfg.id}_学习笔记</title></head><body>${html}</body></html>`;
   const blob = new Blob(["\ufeff", fullHtml], {type:"application/msword;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `DAY${day}_UG_NX12_学习笔记_${p.title.replace(/[^\w\u4e00-\u9fa5]/g,"").slice(0,20)}.doc`;
+  a.download = `DAY${day}_${cfg.name.replace(/[^\w\u4e00-\u9fa5]/g,"")}_学习笔记_${p.title.replace(/[^\w\u4e00-\u9fa5]/g,"").slice(0,20)}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-}
-function ugExportAllToWord(){
-  const data = ugLoadData();
+};
+BI.exportAll = function(cfg){
+  const st = BI.state(cfg);
+  const data = BI.loadData(cfg);
   let doneCount = 0;
   let sectionsHtml = "";
   let tocHtml = "";
-  ugPlan.forEach(p=>{
+  st.plan.forEach(p=>{
     const dayData = data[p.day] || {};
     const isDone = dayData.checked === true;
     if(isDone) doneCount++;
     const noteText = dayData.notes || "";
     const hasNote = noteText.trim().length > 0;
-    tocHtml += `<tr><td style="padding:4px 8px;border:1px solid #ccc;">DAY ${p.day}</td><td style="padding:4px 8px;border:1px solid #ccc;">${ugEsc(p.title)}</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:center;">${isDone?'✓ 已完成':'未完成'}</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:center;">${hasNote?noteText.trim().length+'字':'无'}</td></tr>`;
+    tocHtml += `<tr><td style="padding:4px 8px;border:1px solid #ccc;">DAY ${p.day}</td><td style="padding:4px 8px;border:1px solid #ccc;">${BI.esc(p.title)}</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:center;">${isDone?'✓ 已完成':'未完成'}</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:center;">${hasNote?noteText.trim().length+'字':'无'}</td></tr>`;
     if(hasNote || isDone){
-      sectionsHtml += ugBuildDayHtml(p, noteText, dayData) + "<br><br>";
+      sectionsHtml += BI.buildDayHtml(cfg, p, noteText, dayData) + "<br><br>";
     }
   });
   if(sectionsHtml === ""){
-    ugShowToast("还没有任何学习笔记，请先打卡","error");
+    BI.toast(cfg, "还没有任何学习笔记，请先打卡", "error");
     return;
   }
   const now = new Date().toLocaleString("zh-CN");
-  const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>UG_NX12_学习笔记_全集</title></head><body>
-    <h1 style="color:#40A9FF;text-align:center;">UG NX 12.0 自学打卡学习笔记</h1>
-    <h2 style="text-align:center;color:#333;">基于 B站《UG12.0从入门到精通 25节课》教程 · ${UG_TOTAL_DAYS}天打卡记录</h2>
-    <p style="text-align:center;color:#666;">导出时间：${now} | 打卡进度：${doneCount} / ${UG_TOTAL_DAYS} 天</p>
+  const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${cfg.id}_学习笔记_全集</title></head><body>
+    <h1 style="color:#40A9FF;text-align:center;">${cfg.name} 自学打卡学习笔记</h1>
+    <h2 style="text-align:center;color:#333;">${cfg.tutorial ? '基于 B站 ' + cfg.tutorial.name + ' 教程' : cfg.name + ' 学习计划'} · ${st.totalDays}天打卡记录</h2>
+    <p style="text-align:center;color:#666;">导出时间：${now} | 打卡进度：${doneCount} / ${st.totalDays} 天</p>
     <hr>
     <h3 style="color:#40A9FF;">目录与打卡进度</h3>
     <table style="border-collapse:collapse;width:100%;font-size:13px;">
@@ -2410,195 +1993,139 @@ function ugExportAllToWord(){
     <h3 style="color:#40A9FF;">各日学习笔记详情</h3>
     ${sectionsHtml}
     <hr>
-    <p style="text-align:center;color:#999;font-size:11px;">本文档由 UG NX 12.0 自学打卡日历生成 | 共 ${doneCount} 天已完成打卡</p>
+    <p style="text-align:center;color:#999;font-size:11px;">本文档由 ${cfg.name} 自学打卡日历生成 | 共 ${doneCount} 天已完成打卡</p>
   </body></html>`;
   const blob = new Blob(["\ufeff", fullHtml], {type:"application/msword;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   const dateStr = new Date().toISOString().slice(0,10);
-  a.download = `UG_NX12_学习笔记_全集_${dateStr}.doc`;
+  a.download = `${cfg.id}_学习笔记_全集_${dateStr}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  ugShowToast(`已导出全部学习笔记（${doneCount}/${UG_TOTAL_DAYS} 天）为 Word 文档`);
-}
+  BI.toast(cfg, `已导出全部学习笔记（${doneCount}/${st.totalDays} 天）为 Word 文档`);
+};
 
-/* ============ 修改UG学习总天数（页面内弹窗，不依赖prompt） ============ */
-function ugChangeTotalDays(){
-  const data = ugLoadData();
+/* ---------- 修改学习总天数 ---------- */
+BI.changeDays = function(cfg){
+  const st = BI.state(cfg);
+  const data = BI.loadData(cfg);
   const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
   const info = doneCount > 0
-    ? `当前已完成 ${doneCount} / ${UG_TOTAL_DAYS} 天。请输入新的总天数（1-365，不能小于已完成的 ${doneCount} 天）：`
-    : `当前进度 0 / ${UG_TOTAL_DAYS} 天。请输入新的总天数（1-365）：`;
-  const infoEl = document.getElementById("ugDaysModalInfo");
+    ? `当前已完成 ${doneCount} / ${st.totalDays} 天。请输入新的总天数（1-365，不能小于已完成的 ${doneCount} 天）：`
+    : `当前进度 0 / ${st.totalDays} 天。请输入新的总天数（1-365）：`;
+  const infoEl = BI.el(cfg, "DaysModalInfo");
   if(infoEl) infoEl.textContent = info;
-  const input = document.getElementById("ugDaysInput");
+  const input = BI.el(cfg, "DaysInput");
   if(input){
-    input.value = UG_TOTAL_DAYS;
+    input.value = st.totalDays;
     input.min = doneCount || 1;
     setTimeout(()=>input.focus(), 100);
   }
-  const modal = document.getElementById("ugDaysModal");
+  const modal = BI.el(cfg, "DaysModal");
   if(modal) modal.classList.add("active");
-}
-function ugCloseDaysModal(){
-  const modal = document.getElementById("ugDaysModal");
+};
+BI.closeDaysModal = function(cfg){
+  const modal = BI.el(cfg, "DaysModal");
   if(modal) modal.classList.remove("active");
-}
-function ugApplyDaysChange(){
-  const input = document.getElementById("ugDaysInput");
+};
+BI.applyDays = function(cfg){
+  const st = BI.state(cfg);
+  const input = BI.el(cfg, "DaysInput");
   if(!input) return;
   const v = parseInt(input.value);
-  const data = ugLoadData();
+  const data = BI.loadData(cfg);
   const doneCount = Object.keys(data).filter(k=>data[k] && data[k].checked).length;
   if(!v || v < 1 || v > 365){ alert("请输入 1-365 之间的整数"); return; }
   if(v < doneCount){ alert(`新天数 ${v} 小于已完成的 ${doneCount} 天，请输入不小于 ${doneCount} 的数字`); return; }
-
-  // 按新天数重新分配每天的视频/知识点（均匀分配策略）
-  const redistributed = ugRedistributePlan(v);
-  console.log("[UG改天数] 新天数=", v, "重分配结果=", redistributed ? "成功" : "无内容");
+  const redistributed = BI.redistribute(cfg, v);
   if(redistributed){
-    if(!confirm(`将按 ${v} 天重新分配每天的学习内容（视频/知识点）。\n已编辑的内容会被覆盖，但打卡记录和笔记会保留。继续？`)) return;
-    // 直接用重分配结果替换 UG_CONTENT_KEY（不影响打卡数据 UG_STORAGE_KEY）
+  if(!confirm(`将按 ${v} 天重新分配每天的学习内容（视频/知识点）。\n已编辑的内容会被覆盖，但打卡记录和笔记会保留。继续？`)) return;
     const newContent = {};
     Object.keys(redistributed).forEach(day=>{
       const d = parseInt(day);
       const item = redistributed[day];
       newContent[d] = {title: item.title, goal: item.goal, desc: item.goal, videos: item.videos, points: item.knowledge || [], _userEdited: false};
     });
-    localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(newContent));
-  } else if(v < UG_TOTAL_DAYS){
-    // 无预填充内容且天数减少：清除超出范围天的_content
-    const allContent = JSON.parse(localStorage.getItem(UG_CONTENT_KEY) || "{}");
+    localStorage.setItem(cfg.contentKey, JSON.stringify(newContent));
+  } else if(v < st.totalDays){
+    const allContent = JSON.parse(localStorage.getItem(cfg.contentKey) || "{}");
     Object.keys(allContent).forEach(k=>{ if(parseInt(k) > v) delete allContent[k]; });
-    localStorage.setItem(UG_CONTENT_KEY, JSON.stringify(allContent));
+    localStorage.setItem(cfg.contentKey, JSON.stringify(allContent));
   }
-
-  // 天数减少时：清除超范围天的打卡记录
-  if(v < UG_TOTAL_DAYS){
-    const oldData = ugLoadData();
+  if(v < st.totalDays){
+    const oldData = BI.loadData(cfg);
     const newData = {};
     Object.keys(oldData).forEach(k=>{ if(parseInt(k) <= v) newData[k] = oldData[k]; });
-    ugSaveData(newData);
+    BI.saveData(cfg, newData);
   }
+  st.totalDays = v;
+  localStorage.setItem(cfg.daysKey, String(st.totalDays));
+  BI.buildPlan(cfg);
+  BI.renderCalendar(cfg);
+  BI.closeDaysModal(cfg);
+  const tip = redistributed ? `✓ 已修改为 ${st.totalDays} 天，并重新分配每天学习内容` : `✓ 已修改为 ${st.totalDays} 天学习计划`;
+  BI.toast(cfg, tip);
+  if(typeof renderList === 'function') renderList();
+};
 
-  UG_TOTAL_DAYS = v;
-  localStorage.setItem(UG_DAYS_KEY, String(UG_TOTAL_DAYS));
-  ugBuildCurrentPlan(); // 重建当前计划数组
-  ugRenderCalendar();
-  // 如果打卡弹窗打开且当天超范围则关闭
-  if(typeof ugCloseDayModal === 'function' && (v < 10 /* 简化判断 */)){
-    // 不强制关闭，交由用户操作
-  }
-  ugCloseDaysModal();
-  const tip = redistributed ? `✓ 已修改为 ${UG_TOTAL_DAYS} 天，并重新分配每天学习内容` : `✓ 已修改为 ${UG_TOTAL_DAYS} 天学习计划`;
-  ugShowToast(tip);
-  if(typeof renderList === 'function') renderList(); // 刷新首页进度条
-}
-
-/* UG打卡事件绑定 */
-(function ugBindEvents(){
-  function bind(){
-    const closeBtn = document.getElementById("ugCloseBtn");
-    const mask = document.getElementById("ugModalMask");
-    const resetBtn = document.getElementById("ugResetBtn");
-    const exportAllBtn = document.getElementById("ugExportAllBtn");
-    const changeDaysBtn = document.getElementById("ugChangeDaysBtn");
-    const daysCloseBtn = document.getElementById("ugDaysCloseBtn");
-    const daysCancelBtn = document.getElementById("ugDaysCancelBtn");
-    const daysApplyBtn = document.getElementById("ugDaysApplyBtn");
-    const daysMask = document.getElementById("ugDaysModal");
-    if(!closeBtn) return false;
-    closeBtn.addEventListener("click",ugCloseDayModal);
-    mask.addEventListener("click",e=>{ if(e.target.id === "ugModalMask") ugCloseDayModal(); });
-    document.addEventListener("keydown",e=>{
-      if(e.key === "Escape"){
-        if(mask.classList.contains("active")) ugCloseDayModal();
-        else if(daysMask && daysMask.classList.contains("active")) ugCloseDaysModal();
-      }
-    });
-    resetBtn.addEventListener("click",()=>{
-      if(confirm("确定要重置所有打卡进度吗？此操作不可恢复。")){
-        localStorage.removeItem(UG_STORAGE_KEY);
-        ugRenderCalendar();
-        if(typeof renderList==='function') renderList();
-        ugShowToast("进度已重置，重新开始学习吧！");
-      }
-    });
-    exportAllBtn.addEventListener("click", ugExportAllToWord);
-    if(changeDaysBtn) changeDaysBtn.addEventListener("click", ugChangeTotalDays);
-    if(daysCloseBtn) daysCloseBtn.addEventListener("click", ugCloseDaysModal);
-    if(daysCancelBtn) daysCancelBtn.addEventListener("click", ugCloseDaysModal);
-    if(daysApplyBtn) daysApplyBtn.addEventListener("click", ugApplyDaysChange);
-    if(daysMask) daysMask.addEventListener("click", e=>{ if(e.target.id === "ugDaysModal") ugCloseDaysModal(); });
-    return true;
-  }
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded",bind);
-  } else {
-    if(!bind()){
-      document.addEventListener("DOMContentLoaded",bind);
+/* ---------- 事件绑定 ---------- */
+BI.bind = function(cfg){
+  const closeBtn = BI.el(cfg, "CloseBtn");
+  if(!closeBtn) return false;
+  const mask = BI.el(cfg, "ModalMask");
+  const resetBtn = BI.el(cfg, "ResetBtn");
+  const exportAllBtn = BI.el(cfg, "ExportAllBtn");
+  const changeDaysBtn = BI.el(cfg, "ChangeDaysBtn");
+  const daysCloseBtn = BI.el(cfg, "DaysCloseBtn");
+  const daysCancelBtn = BI.el(cfg, "DaysCancelBtn");
+  const daysApplyBtn = BI.el(cfg, "DaysApplyBtn");
+  const daysMask = BI.el(cfg, "DaysModal");
+  closeBtn.addEventListener("click", ()=>BI.closeDayModal(cfg));
+  if(mask) mask.addEventListener("click", e=>{ if(e.target.id === BI.id(cfg, "ModalMask")) BI.closeDayModal(cfg); });
+  if(daysMask) daysMask.addEventListener("click", e=>{ if(e.target.id === BI.id(cfg, "DaysModal")) BI.closeDaysModal(cfg); });
+  document.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){
+      if(mask && mask.classList.contains("active")) BI.closeDayModal(cfg);
+      else if(daysMask && daysMask.classList.contains("active")) BI.closeDaysModal(cfg);
     }
-  }
-})();
+  });
+  if(resetBtn) resetBtn.addEventListener("click", ()=>{
+    if(confirm("确定要重置所有打卡进度吗？此操作不可恢复。")){
+      localStorage.removeItem(cfg.storageKey);
+      BI.renderCalendar(cfg);
+      if(typeof renderList==='function') renderList();
+      BI.toast(cfg, "进度已重置，重新开始学习吧！");
+    }
+  });
+  if(exportAllBtn) exportAllBtn.addEventListener("click", ()=>BI.exportAll(cfg));
+  if(changeDaysBtn) changeDaysBtn.addEventListener("click", ()=>BI.changeDays(cfg));
+  if(daysCloseBtn) daysCloseBtn.addEventListener("click", ()=>BI.closeDaysModal(cfg));
+  if(daysCancelBtn) daysCancelBtn.addEventListener("click", ()=>BI.closeDaysModal(cfg));
+  if(daysApplyBtn) daysApplyBtn.addEventListener("click", ()=>BI.applyDays(cfg));
+  return true;
+};
 
-/* UG打卡初始化 */
-ugRenderCalendar();
+/* ---------- 初始化所有内置模块 ---------- */
+(function(){
+  Object.keys(BUILTIN_CONFIGS).forEach(id=>{
+    const cfg = BUILTIN_CONFIGS[id];
+    BI.checkPlanVersion(cfg);
+    BI.buildPlan(cfg);
+    if(!BI.bind(cfg) && document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", ()=>BI.bind(cfg));
+    }
+    BI.renderCalendar(cfg);
+  });
+})();
 </script>
+
 
 <script>
 /* ============ 知识点汇总（内嵌版，函数加kp前缀避免冲突） ============ */
 const KP_BASE_URL = "https://www.bilibili.com/video/BV1SYJc6MEWJ/";
-const kpPlan = [
-  {day:1,title:"软件入门基础",range:"1.1-1.3",goal:"完成 UG NX 12.0 软件启动、文件新建与保存、认识工作界面各区域功能，掌握鼠标三键的基本操作。",videos:[
-    {title:"1.1 UG文件新建及保存",page:1,knowledge:["UG NX 12.0 启动方式：开始菜单 / 桌面快捷方式；第一次启动可选择角色（高级、加工、装配等）","新建文件（Ctrl+N）：模板分「模型」「图纸」「装配」「仿真」等大类，建模常用「模型」→「建模」","单位设置：毫米(mm) / 英寸(inch)，机械行业一律选毫米；模板默认单位由 NX 安装决定","文件名规则：不允许中文、空格、特殊字符，建议用字母+数字+下划线，如 part_001.prt","保存文件（Ctrl+S）：首次保存需选择保存路径，建议路径纯英文避免中文字符乱码","另存为 / 保存工作部件 / 全部保存（Ctrl+Shift+S）的区别","文件关闭：仅关闭窗口 vs 关闭并保存；UG 会周期性自动备份（.log 文件），崩溃后可恢复","历史记录：「文件」→「最近打开的部件」快速打开最近用过的文件"]},
-    {title:"1.2 UG界面编辑",page:2,knowledge:["菜单栏：文件、编辑、视图、插入、格式、工具、装配、信息、分析、首选项、窗口、帮助共12项","功能区（Ribbon）选项卡：「主页」最常用，「装配」「曲面」「分析」等模块切换","资源条（左侧竖条）：部件导航器（最重要）、装配导航器、重用库、角色、历史记录等","图形窗口：中间显示模型的区域，支持多标签页，每个部件独立显示","提示行（上）与状态行（下）：提示当前步骤应该做什么；状态行显示选择了多少对象","定制界面（Ctrl+1）：「命令」标签拖拽命令到工具条；「角色」保存当前界面布局","角色（Role）：内置高级、基本、CAM 专项；可「新建角色」保存自己的按钮布局","全屏模式：Ctrl+Shift+F 放大图形窗口，再按还原；适合大模型查看"]},
-    {title:"1.3 鼠标的操作",page:3,knowledge:["鼠标左键（LB）：单击选单个对象、框选（从左到右选全包围、从右到左选半包围）","鼠标中键（MB）：按一下 = 确定（OK）；按住拖拽 = 旋转模型视图；滚轮滚动 = 缩放视图","滚轮缩放中心：默认以光标位置为中心缩放，可在首选项中切换缩放模式","Ctrl + 中键拖拽：平移视图（不旋转只移动）；也可用 Shift + 中键","鼠标右键（RB）：在空白处长按弹出「快捷圆盘」菜单（径向菜单），中心是常用命令，周围8个扇区可选","圆盘菜单定制：Ctrl+1 →「圆盘菜单」标签页，可设置自己常用的8个命令","物体上右键：弹出该对象专属菜单（编辑参数、编辑位置、隐藏、抑制、删除等）","视图方向快捷键：F8 摆正到最近的正视图；Home 恢复默认等轴测视图"]},
-  ]},
-  {day:2,title:"视图操作与草图入门",range:"1.4-1.5 + 2.1",goal:"掌握右键菜单与组合键推拉菜单的视图操作技巧，了解草图概念并掌握三种进入草图环境的方式。",videos:[
-    {title:"1.4 右键菜单",page:4,knowledge:["空白处右键：刷新、选择条过滤方式、刷新屏幕、清除高亮、布局切换","物体上右键（无命令激活时）：编辑参数、可回滚编辑、编辑位置、抑制、隐藏、删除、属性","命令激活中右键：确认当前步、后退（上一步）、取消（ESC）、重置当前输入","弹出菜单深度：不同对象弹出的菜单项不同，如草图右键含「完成草图」「定向视图到草图」","快捷圆盘菜单：按住右键在空白区域停留片刻弹出，中心区域+8扇区","视图操作菜单：在圆盘菜单「视图」扇区里有正等侧/俯视图/正视图/左视图等快速切换","圆盘菜单定制：Ctrl+1 →「圆盘」页签，按扇区分配按钮","常用：圆盘里放「隐藏」「显示」「正视于」「显示所有对象」这四个最省时间"]},
-    {title:"1.5 组合键及推拉菜单",page:5,knowledge:["Ctrl+Shift+左键九宫格(3×3)：每格对应命令，左上起依次为视图方向、比例、窗口切换等","Ctrl+Shift+中键九宫格：旋转、平移、缩放等观察命令","Ctrl+Shift+右键九宫格：测量、隐藏、编辑、对象显示等编辑命令","九宫格自定义：Ctrl+1 定制里可改每个格子放什么命令","右键方向滑动：上下左右推按不同方向触发不同动作","视图切换键：Top=俯视图、Front=正视图、Right=右视图、TFR-TRI=正等轴测等","定向视图到对象（Ctrl+Shift+O）：把视图正视于你选的面，画草图/钻孔前必用","小技巧：F8=视图摆正到最近平面；Ctrl+Shift+F=全屏视图；Ctrl+F=拟合视图到最大"]},
-    {title:"2.1 进入草图",page:6,knowledge:["草图（Sketch）：二维参数化绘图环境，是所有三维特征的截面基础，所有尺寸都可驱动","三种进入草图方式：①直接草图 ②任务环境中的草图 ③特征内草图（画拉伸时自动进草图）","草图平面是第一步要选的：现有平面、创建平面、创建基准坐标系（CSYS）","XY/YZ/XZ 三个基准平面是建模坐标系的三大平面，默认平面优先用它们","「自动判断」：选到哪个面/基准平面就用哪个平面，最省事","草图方向：平面选完后可选「参考」方向（哪个方向朝上）","草图原点：草图(0,0)落在哪，一般默认即可","完成草图（Ctrl+Q）：退出草图环境返回建模"]},
-  ]},
-  {day:3,title:"草图绘制工具",range:"2.2-2.4",goal:"掌握直线、圆工具的XY模式与参数模式绘制，学会阵列曲线、对称镜像、偏置曲线及圆角工具。",videos:[
-    {title:"2.2 直线与圆工具",page:7,knowledge:["直线工具：①XY坐标模式 ②鼠标点击拖动 ③参数化长度+角度绘制","圆工具：①圆心+直径 ②三点画圆 ③相切相切半径","圆弧工具：三点圆弧、中心+起点+终点圆弧","尺寸驱动性：画完不用在意大小，之后双击尺寸输入数值即可修改","捕捉点开关：端点、中点、圆心、交点、切点、四等分点、控制点、象限点等","点构造器：鼠标右键可临时调用；也可按对话框箭头打开精确输入窗口","快速修剪：点选线段一段段剪掉，或按住左键横扫把多余段批量剪","快速延伸：与修剪同组，让线段自动延长到下一条边界上","几何约束入门：相切、共点、同心、共线、水平、竖直、平行、垂直 8 种最基础"]},
-    {title:"2.3 阵列工具",page:8,knowledge:["阵列曲线（草图内阵列）：分「线性阵列」和「圆形阵列」","线性阵列：选择要阵列的曲线→指定X方向（数量+节距或数量+总跨距）→指定Y方向→确定","节距 vs 跨距：节距=相邻中心距；跨距=首末对象之间总距离","圆形阵列：选曲线→选中心参考点→数量+节距角或数量+总角度","布尔选项：无、加、减、交——在草图里阵列和原对象是分开还是合并","对象类型转换（实线↔参考线）：画阵列基准圆时经常需要把圆转成参考线","阵列孔：圆画一个孔，再用圆形/线性阵列出全部孔，是法兰盘等零件的标准画法","删除阵列实例：阵列后可单独删除某个位置的对象"]},
-    {title:"2.4 对称偏置圆角",page:9,knowledge:["镜像曲线（对称）：选要镜像的曲线→选对称中心线→确认；UG 自动添加「对称」约束","镜像中心线要求：必须是草图中的直线，一般转参考线；轴必须在同一张草图里","偏置曲线：把已有曲线按指定距离偏移出一条平行副本","3D 偏置 vs 草图偏置：草图内偏置是二维平面内偏，3D 偏置是空间偏","角焊（圆角/倒圆）：选两条相邻线→输入半径→确定；支持同时框选多个角批量倒圆角","圆角规则：先在约束基本完成后再倒圆角，否则约束可能乱跑","取消圆角：圆角出错时可回退；若已添加约束先删掉该约束再重画","小练习完整流程：画中心参考十字→画大圆外形→画孔位参考圆→画一个孔→阵列孔→镜像对称部分→全约束→修多余线→倒圆角"]},
-  ]},
-  {day:4,title:"草图约束与技巧",range:"2.5-2.7",goal:"系统掌握草图几何约束与尺寸约束，学会派生曲线、偏置曲线操作，积累草图绘制技巧。",videos:[
-    {title:"2.5 约束工具",page:10,knowledge:["几何约束 vs 尺寸约束：几何约束控制位置关系；尺寸约束控制大小，二者配合构成全约束","全约束（自由度=0）：所有曲线都变成浅绿色，草图不会乱动","11种几何约束：固定/重合/同心/共线/点在曲线上/中点/水平/竖直/平行/垂直/相切/等长/等半径/恒定角度/对称","自动约束 vs 手动约束：绘制时自动加的约束不够或错→手动补","约束冲突：两条线同时被加平行+垂直就会冲突，提示栏变红","快速尺寸：自动判断模式最省时；必要时切换到水平、竖直、平行、垂直、角度、径向、周长尺寸","周长尺寸：给封闭轮廓约束总长，常用于弹簧、凸轮类","钩子实例完整流程：画中心十字→画外轮廓大圆→画各段圆弧（相切约束是关键）→画小圆并约束到指定距离→加圆角→修剪多余段→全约束"]},
-    {title:"2.6 派生曲线",page:11,knowledge:["派生直线：画两条平行线，选两条平行线段→UG 在它们中间自动派生一条平行线","偏置曲线（草图内）：选已有曲线→输入偏置距离→选方向；支持链式偏置多条边","投影曲线：把当前草图外的对象投影到当前草图平面上，变成草图里的曲线；最常用命令之一","投影曲线注意：投影来的曲线会带「投影约束」，删除投影约束才能自由改","相交曲线：求一个面/基准面与草图平面的交线；常用于确定草图与已有特征的交界","综合：派生直线用得少，偏置/投影/相交用得多","派生类曲线一般是辅助，最后要修剪并和主体线合并成封闭轮廓才能拉伸"]},
-    {title:"2.7 草图技巧",page:12,knowledge:["草图绘制黄金顺序：① 画参考线 ② 画主体形状 ③ 加几何约束 ④ 加尺寸约束 ⑤ 倒圆角 ⑥ 修剪完成","草图欠约束可接受吗？初学建议先做到全约束（浅绿色），熟练后少量欠约束可以接受","约束符号看不清：「显示草图约束」按钮可切换显示/隐藏所有约束符号；双击符号可以编辑该约束","定向视图到草图：进入复杂草图先按 F8 或点「定向视图到草图」按钮","参考线用法：复杂零件的中心、中心线、孔位分布圆等都先画再转参考线","轮廓命令：先拖画整体轮廓（直线+圆弧自动切换），最后再统一加约束","草图失败排查：修改父特征后草图失效，进草图看是不是有冲突或悬空约束→删掉死约束重新加","草图评估：「信息」→「草图」可查看自由度、约束数量、状态"]},
-  ]},
-  {day:5,title:"拉伸特征入门",range:"3.1-3.2",goal:"理解草图到实体的转换流程，掌握拉伸命令的截面选择、方向、距离限制等核心参数。",videos:[
-    {title:"3.1 拉伸实例",page:13,knowledge:["拉伸（Extrude）= 把二维截面沿着指定方向扫出一段高度，生成实体/片体","拉伸完整流程：①选/画草图截面 ②打开拉伸（快捷键 X） ③选截面 ④选方向 ⑤输入距离 ⑥选布尔 ⑦确定","选择意图：相连曲线用得最多，点一条自动串联整个轮廓","截面开口 vs 闭合：开口截面拉伸成「片体」；闭合截面默认拉成「实体」","部件导航器：拉伸后会在特征树看到一个「拉伸」，可右键→编辑参数、编辑位置、删除、抑制","布尔运算（Boolean）：无、求和、求差、求交","求和注意：两个体必须有真实相交的体积，否则报错","实例：画一个矩形草图→拉成长方体→再在上面画圆草图→求差拉伸成孔"]},
-    {title:"3.2 拉伸详解",page:14,knowledge:["截面（Section）：可直接选已有草图，也可在拉伸对话框里即时「绘制截面」新建草图","方向（Direction）：默认垂直于草图平面；也可手动选边/基准轴作为方向矢量","限制（Limits）：①值 ②对称值 ③直至下一个 ④直至选定 ⑤贯通","直到延伸（Until Extended）：选择的参考面不够大时自动扩展再截停","拔模（Draft）：拉伸时给侧面加锥度；正数向内收，负数向外扩","拔模常见错误：锥度过大导致上底面面积归零，会报错；锥度通常≤15°安全","偏置（Offset，Day6详解）：在截面内/外加厚拉，可做薄壁管","编辑参数 vs 可回滚编辑：编辑参数只改对话框数值；可回滚编辑=回到特征刚创建时的完整流程"]},
-  ]},
-  {day:6,title:"拉伸进阶与旋转",range:"3.3-3.5",goal:"掌握拉伸的起点终点设置与偏置功能，学会旋转特征创建回转体并完成倒角。",videos:[
-    {title:"3.3 起点终点",page:15,knowledge:["起点（Start）与终点（End）：默认起点=0，终点=你输入的距离；起点也可以不是草图平面","起点控制方式同终点：值/对称值/直至下一个/直至选定/贯通；起终点独立控制","直至选定典型用例：把筋板、加强筋拉到刚好贴合一个曲面为止","贯通典型用例：在厚板上打通孔，无论板材多厚都能打穿","直至下一个 vs 直至选定：前者自动找下一个碰到的体，后者手动选一个对象当止面","方向反向：拉伸过程中点「反向」按钮可以把拉伸方向反过来","失败排查：直至选定的参考面不够大，报错「无法修剪」→ 换用直到延伸","实例：做阶梯轴→先画一个圆拉成短圆柱→再在其端面上画另一个大圆，拉成第二段→求和即可"]},
-    {title:"3.4 拉伸偏置",page:16,knowledge:["拉伸偏置（Offset）：在拉伸的同时，让截面再向内/向外偏一段厚度，生成薄壁实体","偏置模式：①无 ②单侧 ③两侧 ④对称","单侧偏置典型应用：圆形截面+单侧偏置→内/外管；方截面+单侧偏置→箱体侧壁","两侧偏置典型应用：两端厚度不一样的阶梯套筒","偏置厚度太大导致拐角自交，会报错「自相交截面」→减小偏置厚度或先画大截面再用抽壳","偏置 vs 抽壳：偏置是「在拉伸时顺便做壁厚」，抽壳是「先做成实心，再掏空」","偏置还能在原截面基础上生成薄壁+原实体布尔，形成加强肋板","练习：画直径60的圆→拉伸偏置，单侧向外偏 5，高度 100→得到外径70、内径60、高100的空心管"]},
-    {title:"3.5 旋转倒角",page:17,knowledge:["旋转（Revolve）= 把二维截面绕某根轴旋转一定角度，生成回转体","旋转三要素：①截面 ②轴（直线或基准轴）③旋转角度","轴选择规则：轴必须与截面共面，且不能穿过截面内部（穿过会自相交）","旋转角度：默认 0°~360° 生成整圈；也可只转一段","布尔运算：旋转也支持求和/求差/求交","倒斜角（Chamfer）：切去棱边的尖角；有「对称」「非对称」「偏置和角度」三种模式","边倒圆（Edge Blend）：选棱边→输入半径→确定；可同时选多条边批量倒","特征顺序很重要：先做主体，再倒大圆角，再倒角，最后打孔、切槽"]},
-  ]},
-  {day:7,title:"片体与孔特征",range:"3.6-3.8",goal:"理解片体与实体的区别与转换，掌握孔特征的创建与定位，学会添加螺纹特征。",videos:[
-    {title:"3.6 片体实体",page:18,knowledge:["实体 vs 片体：实体有体积有厚度，片体是没有厚度的「面」","什么时候得到片体：①开口截面拉伸/旋转 ②曲面模块命令 ③缝合时公差不够","缝合（Sew）：把多个相邻的片体拼接到一起，闭合后自动变成实体","缝合公差：默认0.0254mm，面与面之间缝隙大于这个值就缝不上→加大公差","加厚（Thicken）：给单片体加厚度变成实体；向内/向外/两侧偏","修剪片体：用面、曲线、基准去剪掉片体不需要的部分","片体转实体 3 种方法：①缝合 ②加厚 ③补面","片体失败排查：边界检查（分析→检查几何体→片体边界）可以找出面组有没有破洞"]},
-    {title:"3.7 孔工具",page:19,knowledge:["孔（Hole）特征（快捷键 H）：比「画圆再拉伸求差」更灵活","孔类型：①常规孔 ②钻形孔 ③螺钉间隙孔 ④螺纹孔 ⑤孔系列","常规孔的形状：简单孔、沉头孔、埋头孔、锥形孔","孔尺寸参数：直径、深度（值/贯通体/直至选定/直至下一个）、顶锥角（一般118°钻头标准角）","沉头孔参数：沉头直径、沉头深度、孔直径、孔深度","孔定位方式：①绘制草图定位 ②线性定位 ③径向定位 ④同轴 ⑤点在点上","推荐定位方式：新学者先选「绘制草图的点」定位最直观","阵列孔：单个孔做好后用「阵列特征」阵列出多个（线性/圆形）"]},
-    {title:"3.8 添加螺纹",page:20,knowledge:["螺纹（Thread）命令：给圆柱面/孔内表面添加螺纹标记或螺纹几何形状","符号螺纹（Symbolic）：只在表面画出虚线螺纹标记；计算快、模型小，工程图里会自动正确标注","详细螺纹（Detailed）：真的切削出螺纹牙形；模型体积大、运算慢，仅用于渲染展示","符号螺纹参数：大径、小径、螺距、长度、旋转方向（右旋/左旋）、标注","读取标准：勾选「手动输入」关闭后，可读取 ISO/UNC/UNF 等标准螺纹表","起始条件：螺纹从哪里开始；可指定起始面、从指定距离处开始","左旋 vs 右旋：机械行业默认右旋（顺时针拧紧），特殊场合才用左旋","实例：法兰盘4个M10孔→先画4个直径8.5的钻孔→符号螺纹选每个孔的内表面→选M10标准→完成"]},
-  ]},
-  {day:8,title:"基准面与抽壳",range:"3.9-3.10",goal:"掌握基准平面的多种创建方法，学会抽壳工具创建均匀/变壁厚壳体。",videos:[
-    {title:"3.9 建立基准面",page:21,knowledge:["基准平面（Datum Plane）：虚拟的参考平面，无限大，用作草图平面、定位面、镜像面等辅助","创建基准面常用 7 种方式：①自动判断 ②点和方向 ③在曲线上 ④按距离 ⑤成一角度 ⑥平分 ⑦相切","常用场景：「按距离」做阶梯零件；「成角度」做倾斜肋板；「相切」过圆柱切点建平面画凸台","基准轴（Datum Axis）：参考直线，常用于旋转特征轴、圆周阵列参考、方向矢量","基准坐标系（Datum CSYS）：同时生成 XY、YZ、XZ 三个基准平面+原点+三根轴","基准关联性：基准面由哪个对象建立，就自动跟着那个对象移动——这就是参数化","什么时候需要单独建基准？想让多个特征共用同一个参考面时就需要显式建一个","小技巧：新建基准后先点「显示结果」预览，确认平面位置对了再确定"]},
-    {title:"3.10 抽壳工具",page:22,knowledge:["抽壳（Shell）= 把实心实体挖空，只留一层壁；适合做箱体、外壳、容器","抽壳操作：打开抽壳→选择「要穿透的面」（会被挖开）→输入壁厚→确定","壁厚类型：①均匀壁厚 ②备选厚度（为个别面单独指定厚度）","抽壳方向：向内（默认，内部挖空，外形不变）、向外、对称","抽壳最小壁厚：太小（<0.1mm）容易失败；注塑一般0.8~2mm","抽壳特征顺序：抽壳前尽量先把所有主体特征做好再抽","抽壳失败常见原因：①有尖锐的内角→先倒大圆角 ②倒圆半径≥壁厚 ③有的面缝隙太大 ④特征顺序不对","实例：做一个塑料杯→先旋转做出实心锥状→抽壳选顶面挖开，壁厚1.5，向外→杯口再倒大圆角"]},
-  ]},
-  {day:9,title:"综合练习一",range:"4.1-4.2",goal:"综合运用旋转、抽壳、基准面等命令完成实际零件建模，巩固前8天所学。",videos:[
-    {title:"4.1 旋转抽壳练习",page:23,knowledge:["练习目标：综合运用草图→旋转→抽壳→倒圆角→基准面→孔 完整流程，独立做出一个端盖/壳体类零件","标准建模思路：①读懂二维图纸 ②分析主特征 ③先做主形体 ④附加次要特征 ⑤细节处理 ⑥测量检查","绘制旋转截面技巧：先画对称中心基准轴（转参考线）→画截面半边轮廓→加约束→加尺寸→检查闭合","旋转后再抽壳的原则：先把实体所有外形做好→抽壳→最后孔/螺纹","常见出错：旋转截面有开口→得到片体抽不了壳；抽壳时穿透面没选到→全封闭壳找不到开口","调试方法：失败后看提示，「无法构造几何体」就是某处壁厚为负或自交","建模完成检查：测量最大外径/高度/壁厚/孔直径，对照图纸；用剖切命令 Ctrl+H 切一半看内部"]},
-    {title:"4.2 基准练习",page:24,knowledge:["练习目标：灵活运用基准平面、基准轴、基准 CSYS 解决复杂零件的定位与阵列","基准面练习案例：圆柱体表面开凸台→先做过圆柱轴线+指定角度的基准面→在基准面上画草图","基准面+阵列：圆周方向6处均匀分布凸台→先做第一个凸台的基准面→圆形阵列","基准轴练习：旋转特征轴找不到时→先做基准轴（两面相交线 / 圆柱中心线 / 两点连线）","CSYS 基准坐标系：装配时从其它零件导入，要求坐标对准时先建共同基准 CSYS","基准特征太多怎么办：Ctrl+B 隐藏 / Ctrl+Shift+B 显示，或者按图层分类管理","技巧：基准要「够用为准」，能直接用面/边的就不用新建基准"]},
-  ]},
-  {day:10,title:"综合实战总结",range:"4.3 + 回顾",goal:"通过综合练习整合所有命令，完成一个完整零件的建模流程，回顾25节课程要点。",videos:[
-    {title:"4.3 综合练习",page:25,knowledge:["综合练习目标：整合25节所有命令，独立完成一个中等复杂度零件（法兰盘、轴承座、减速箱体类）","完整建模范式（法兰盘示例）：①新建文件 ②画草图阵列孔 ③拉伸主形体 ④求差生成轴孔 ⑤埋头孔 ⑥边倒圆角 ⑦螺纹 ⑧剖切检查 ⑨对象检查","部件导航器深度使用：右键特征→「编辑参数」、「可回滚编辑」、「抑制」、「重排在前面/后面」","图层管理：图层1=实体，图层21=草图，图层41=基准/轴，图层61=片体/曲面，图层81=工程图","对象显示（Ctrl+J）：给不同特征/实体上不同颜色+透明度","建模自检清单：草图全约束？特征顺序合理？壁厚一致？孔位正确？关键尺寸对上？","完成后输出：导出 STEP/IGES/X_T 通用格式；或直接进入装配/制图模块"]},
-    {title:"回顾 · 1.1-1.5 基础操作",page:1,knowledge:["回顾 1.1-1.5：①UG 新建/保存 ②界面构成 ③Ctrl+1 定制+保存角色 ④鼠标三键操作 ⑤右键菜单+组合键九宫格","基础操作是地基：后续命令不管多复杂，都要靠这5节的选对象/看视图/确认/取消来推进","高频操作自查：打开一个旧部件，能在10秒内旋转/平移/缩放视图、找到上次修改的特征、单独隐藏一个面","常见错误总结：①文件名用中文 ②单位选错（英寸） ③视图方向乱了按F8/Home恢复 ④快捷键冲突→Ctrl+1重置 ⑤选不到对象→检查选择条过滤器"]},
-    {title:"回顾 · 2.1-2.7 草图模块",page:6,knowledge:["回顾 2.1-2.7：①进入草图三种方式 ②直线/圆/圆弧绘制 ③阵列曲线+对称镜像/偏置/圆角 ④11种几何约束+尺寸约束 ⑤派生直线/投影曲线/相交曲线 ⑥显示草图约束/定向视图到草图 ⑦绘制顺序","草图是所有三维特征的「根」：草图不过关，后续特征再高级也白搭。90% 的建模报错根因在草图","草图能力自测：给你一张中等复杂的二维图，能在15分钟内画完并全约束吗？","后续进阶：先把草图练熟，再学曲面/装配/模具才稳；建议额外做 20~30 张草图练习题"]},
-  ]},
-];
+const kpPlan = (window.LearningModules && LearningModules["ug-nx12"] && LearningModules["ug-nx12"].knowledgePreset) || [];
 
 const kpShortcuts = [
   ["Ctrl+N","新建文件"],["Ctrl+S","保存文件"],["Ctrl+Shift+S","全部保存"],
@@ -2620,127 +2147,21 @@ const kpAdvances = [
   ["同步建模","直接修改非参数化模型，移动面、替换面、删除面、调整圆角大小"],
 ];
 
-// 知识点汇总专用：内置软件预填充知识点（与 template.html PRESET_PLANS 保持同步，精简版，仅知识点页面使用）
-const KPB_PRESETS = {
-  "dji-action4":[
-    {day:1,title:"开箱与基础设置",goal:"完成 Action 4 开箱、首次开机设置、配件安装，掌握 DJI Mimo App 连接与基本操作。",range:"第 1-2 视频",videos:[
-      {title:"新手大疆Action4运动相机开箱",knowledge:["开箱清单：主机、电池、保护框、磁吸快拆底座、Type-C数据线、说明书","首次开机：长按电源键2秒开机，按提示完成初始设置（语言、时区、日期）","电池安装：磁吸式电池仓，对准触点推入听到咔声即到位；1770mAh续航约160分钟(1080P/24fps)","存储卡安装：侧面卡槽，建议U3/V30及以上MicroSD卡，最大支持1TB"]},
-      {title:"DJI官方首次使用教程 & Mimo App连接",knowledge:["前屏+后屏双触摸彩屏：前屏自拍取景，后屏主操作；支持湿手操作和手套触控","磁吸快拆设计：机身背部磁吸，可快速拆装胸带、头盔支架、自拍杆等配件","DJI Mimo App：扫描说明书二维码下载，连接后可远程控制、实时预览、传输素材、直播","防水性能：裸机18米防水，搭配防水壳可达60米；下水前务必检查电池仓密封盖","充电：Type-C接口支持18W快充约90分钟充满；支持边充边录（需外接电源）","官方教程：DJI官网 osmo-action-4/video 页面有首次使用、骑行配件、GPS遥控器等官方教学视频"]},
-    ]},
-    {day:2,title:"参数详解与画质",goal:"系统掌握 Action 4 的分辨率、帧率、增稳、色彩模式等核心参数设置，理解 D-Log M 的优势。",range:"第 3-4 视频",videos:[
-      {title:"Action4 参数设置 / 画质设置 / 4K60帧教程",knowledge:["分辨率选择：4K/60fps（日常推荐）、4K/120fps（慢动作）、1080P/240fps（超慢动作）","帧率与快门法则：帧率60→快门1/120，避免运动模糊；遵循180度快门法则","增稳模式：RockSteady 3.0超强增稳（日常）、HorizonSteady地平线增稳（±45°校正，极限运动）","色彩模式：普通模式（直出色彩即拍即用）、D-Log M（10-bit，后期调色空间大，画面偏灰）","曝光设置：EV值建议0~+0.3；白天ISO 100-800，夜景ISO最高12800","白平衡：AWB自动适合大多数场景；手动固定色温可保持画面一致，后期更易调色","视角选择：标准155°（日常）、广角（变形大慎用）、窄视角（变形小适合拍人物）"]},
-      {title:"Action4 D-Log M / 色彩模式 / 后期调色",knowledge:["D-Log M 优势：记录超10亿种色彩，动态范围更宽，后期可还原丰富的高光/阴影层次","低光增强：夜景或室内开启，降低噪点提升纯净度，建议配合4K/25fps使用","弱光增稳：低光环境下提升画面稳定性，但会有轻微裁切","色温传感器：自动检测环境色温，配合AWB让色彩更准确","B站搜索提示：搜索「Action4 参数设置」「Action4 画质教程」找到视频后，在编辑模式填入BV号即可获取精准链接"]},
-    ]},
-    {day:3,title:"拍摄技巧与场景",goal:"掌握骑行五大拍摄角度与预录制模式的使用，学会根据场景选择最佳参数组合。",range:"第 5-6 视频",videos:[
-      {title:"Action 4运动相机骑行拍摄全角度教学",knowledge:["骑行拍摄推荐设置：4K/60fps + 超强增稳，保证画面流畅稳定","五大拍摄角度：①第一人称（胸口/头盔）②自拍角度 ③风景镜头 ④轮胎角度 ⑤延时摄影","第一人称视角：磁吸胸带固定在胸口，呈现骑行者视线，代入感最强","自拍角度：自拍杆延伸，拍摄骑行中的自己，适合Vlog记录","风景镜头：固定在车把或头盔顶部，拍摄前方风景，画面开阔大气","轮胎角度：固定在前叉或后下叉，拍摄车轮转动，动感十足"]},
-      {title:"十秒教会你用大疆Action4预录制模式",knowledge:["延时摄影：固定拍摄点记录骑行全程缩时画面，适合风景路段","预录制模式：按下快门前15秒/30秒的画面也会被记录，不错过精彩瞬间","预录制开启：设置→录像设置→预录制→选择15秒或30秒","预录制原理：相机持续缓存最新片段，按下快门时将缓存内容一并保存","预录制适用场景：运动中的意外瞬间、野生动物拍摄、体育比赛关键时刻","低光骑行建议：4K/25fps + 低光增强 + 弱光增稳，提升夜景骑行画质"]},
-    ]},
-    {day:4,title:"直播与连接",goal:"掌握 DJI Mimo App 连接相机、微信/抖音直播的完整流程，了解常见直播问题排查。",range:"第 7-8 视频",videos:[
-      {title:"Action4 直播教程 / DJI Mimo 直播 / 微信直播",knowledge:["DJI Mimo App：连接相机与手机的核心应用，支持远程控制、直播、素材传输","连接方式：相机开机→打开Mimo App→自动搜索→点击连接（Wi-Fi直连，无需路由器）","直播前相机设置：方向锁定关闭、增稳超强、录像模式1080P/30fps","直播平台：支持微信视频号、抖音、快手等主流平台","微信直播流程：Mimo→底部直播→选微信→授权登录视频号→设置参数→开始直播","直播参数：分辨率1080P、帧率30、码率自动（避免4K导致卡顿断流）","竖屏vs横屏：拍人/带货用竖屏，拍场景/户外用横屏"]},
-      {title:"直播常见问题排查 & GPS遥控器",knowledge:["方向锁定必须关闭：否则画面会倒或歪，在Mimo直播界面旋转画面调整","收音建议：相机离人远收音轻，用手机麦克风说话最稳；外接麦克风音质更好","直播常见问题：①画面卡→降分辨率到1080P ②断流→检查网络 ③声音小→用手机麦克风","结束直播：回到Mimo点停止直播，不要直接关相机，否则直播可能异常中断","GPS蓝牙遥控器：可选配件，远程控制拍照/录像，支持GPS轨迹记录叠加到视频"]},
-    ]},
-    {day:5,title:"后期调色与总结",goal:"掌握 D-Log M 素材的 LUT 调色流程，回顾五天学习内容，明确进阶方向。",range:"第 9-10 视频",videos:[
-      {title:"Action4 调色 / D-Log M 调色 / 达芬奇调色",knowledge:["D-Log M 调色流程：导入素材→应用LUT还原色彩→调整曝光/对比度/饱和度→导出","LUT文件获取：大疆官网下载中心→Osmo Action 4→软件与驱动→下载D-Log M LUT","达芬奇(DaVinci Resolve)调色：项目设置→色彩管理→LUT文件夹→放入LUT文件","达芬奇操作：导入D-Log M片段→右键新建时间线→节点→应用LUT→微调参数","调色三步法：①还原色彩(LUT) ②调整曝光(高光/阴影/中间调) ③调色温/饱和度","常见问题：D-Log M画面惨白或死黑→拍摄时检查曝光设置，避免过曝或欠曝"]},
-      {title:"五天学习总结 & 进阶方向",knowledge:["手机端调色：DJI Mimo App内置编辑器，支持模板、配乐、简单调色，适合快速出片","剪辑软件推荐：达芬奇(专业免费)、剪映(手机/电脑易上手)、Premiere(专业付费)","五天学习总结：开箱设置→参数画质→拍摄技巧→直播连接→后期调色，完整工作流已掌握","进阶方向：①延时摄影与缩时视频 ②HDR视频拍摄 ③慢动作创作 ④多机位剪辑"]},
-    ]},
-  ],
-  "solidworks":[
-    {day:1,title:"软件入门与草图基础",goal:"完成 SolidWorks 安装、界面熟悉，掌握草图绘制与几何约束。",range:"基础入门",videos:[
-      {title:"SolidWorks 入门教程 / 界面介绍 / SW草图绘制",knowledge:["SolidWorks 启动与界面：菜单栏、特征管理器、属性管理器、图形区域","新建零件文件：文件→新建→零件（Part），单位设置（毫米）","草图绘制工具：直线、圆、矩形、多边形、样条曲线","几何约束：平行、垂直、相切、共线、同心、等长、对称","尺寸标注：智能尺寸、基准尺寸、链尺寸","草图状态：欠约束（蓝色）、完全约束（黑色）、过约束（红色）","退出草图：点击右上角「退出草图」或按 Ctrl+Q"]},
-    ]},
-    {day:2,title:"拉伸特征与布尔运算",goal:"掌握拉伸凸台/基体、拉伸切除命令，理解布尔运算逻辑。",range:"基础特征",videos:[
-      {title:"SolidWorks 拉伸特征 / SW拉伸凸台 / SW布尔运算",knowledge:["拉伸凸台/基体（Boss-Extrude）：最基础的实体创建命令","拉伸参数：方向1/方向2、深度条件（给定深度/贯通到下一面/完全贯穿）","拔模斜度：拉伸时添加锥度，适合铸造件","薄壁特征：勾选「薄壁」可创建钣金件","拉伸切除（Cut-Extrude）：从实体中切除材料","布尔运算：合并（求和）、分割（求差）、相交（求交）","多实体零件：勾选「合并结果」控制是否合并"]},
-    ]},
-    {day:3,title:"旋转特征与扫描",goal:"掌握旋转凸台/基体、旋转切除、扫描特征的创建方法。",range:"基础特征",videos:[
-      {title:"SolidWorks 旋转特征 / SW扫描特征 / SW旋转切除",knowledge:["旋转凸台/基体：截面绕轴旋转生成回转体","旋转参数：旋转轴（直线/基准轴）、角度范围（0-360°）","旋转切除：创建螺纹、轴肩、沟槽等","扫描特征：截面沿路径扫描生成复杂形状","扫描三要素：轮廓（截面）、路径、引导线（可选）","扫描应用：弹簧、管道、复杂曲面零件"]},
-    ]},
-    {day:4,title:"阵列与镜像",goal:"掌握线性阵列、圆周阵列、镜像特征的使用方法。",range:"特征工具",videos:[
-      {title:"SolidWorks 阵列特征 / SW圆周阵列 / SW镜像",knowledge:["线性阵列：沿一个或两个方向重复特征","阵列参数：方向、间距、数量、要阵列的特征","圆周阵列：绕中心轴环形阵列（齿轮、螺栓孔等）","圆周阵列参数：旋转轴、角度、数量","镜像特征/镜像几何体：对称结构的快速创建","镜像基准面：选择对称平面作为镜像面","跳过实例：阵列中可跳过不需要的实例"]},
-    ]},
-    {day:5,title:"基准面与特征工具",goal:"掌握基准面创建、倒角、圆角、孔特征等常用辅助特征。",range:"特征工具",videos:[
-      {title:"SolidWorks 基准面 / SW倒角 / SW圆角 / SW孔特征",knowledge:["基准面创建：等距、平行、垂直、角度、点和直线等","基准面用途：草图平面、镜像面、分割面","倒角（Chamfer）：去除尖锐棱边，多种倒角方式","圆角（Fillet）：添加圆弧过渡，等半径/变半径","孔特征：简单孔、柱形沉头孔、锥形沉孔、螺纹孔","孔定位：位置、线性、圆周定位","筋特征：创建加强筋板"]},
-    ]},
-    {day:6,title:"曲面建模基础",goal:"了解曲面特征创建方法，掌握曲面转实体的技巧。",range:"高级特征",videos:[
-      {title:"SolidWorks 曲面建模 / SW曲面放样 / SW曲面填充",knowledge:["曲面设计入门：曲面工具栏与实体工具栏的区别","拉伸曲面、旋转曲面、扫描曲面：与对应实体命令类似","放样曲面：多个截面生成过渡曲面，常用于复杂外壳","边界曲面：四个边界定义的曲面，质量高于放样","曲面填充：孔洞修补，适合封闭破孔","加厚/缝合：曲面转换为实体的两种方法","曲面应用：产品外观、模具分型面、复杂塑料件设计"]},
-    ]},
-    {day:7,title:"装配与配合",goal:"掌握自底向上装配流程、配合类型与干涉检查方法。",range:"装配设计",videos:[
-      {title:"SolidWorks 装配教程 / SW配合类型 / SW干涉检查",knowledge:["装配模式：自底向上（先零件后装配，简单）vs 自顶向下（先装配骨架后零件，复杂）","新建装配体：新建→装配体（Assembly），单位与零件一致","插入零部件：从文件导入已有零件或直接在装配中新建零件","配合类型：重合、平行、垂直、相切、同轴心、距离、角度等","配合冲突：过多约束可能冲突，优先用几何关系减少配合数","干涉检查：工具→干涉检查，找到零件之间的碰撞部位","爆炸图：爆炸视图功能，生成装配动画和分解图"]},
-    ]},
-    {day:8,title:"工程图基础",goal:"掌握工程图模板设置、三视图生成、尺寸标注方法。",range:"工程出图",videos:[
-      {title:"SolidWorks 工程图教程 / SW三视图 / SW尺寸标注",knowledge:["新建工程图：新建→绘图（Drawing），选择图纸模板（A3/A4）","三视图生成：投影视图，从零件/装配拖入图纸自动生成","辅助视图：局部视图、剖视图、断面图、局部放大图","中心线/中心符号：自动添加中心线，符合国标要求","智能尺寸标注：草图尺寸继承，添加必要的装配尺寸","形位公差：公差标注，配合尺寸给出公差带","表面粗糙度：标注Ra符号、加工纹理方向、加工方法"]},
-    ]},
-    {day:9,title:"钣金与焊件",goal:"掌握钣金件的基体法兰、边线法兰、折弯等命令，了解焊件切割清单。",range:"专项模块",videos:[
-      {title:"SolidWorks 钣金教程 / SW基体法兰 / SW折弯 / SW焊件",knowledge:["钣金零件：进入钣金模块，设置厚度、折弯系数、K因子","基体法兰：第一块平板，确定厚度和基准面","边线法兰：沿边添加翻边、折边","斜接法兰：连接多条边的法兰","展开与折叠：查看展开尺寸，用于下料","切断边角：添加释放槽，防止折弯撕裂","焊件：结构件（型材、方管）快速建模，切割清单自动生成材料长度汇总"]},
-    ]},
-    {day:10,title:"综合练习与进阶",goal:"通过综合练习整合所有命令，明确后续进阶方向。",range:"综合实战",videos:[
-      {title:"SolidWorks 综合练习 / SW进阶方向",knowledge:["完整建模流程：读懂二维图纸→分析主体特征→先做主形体→附加次要特征→细节处理→测量检查","装配练习案例：减速器、齿轮泵、千斤顶等小型机械装置完整建模+装配+工程图","进阶方向：曲面造型（产品外观/汽车白车身）、自顶向下装配（大型设备整机）、运动仿真（MOTION模块，分析机构运动轨迹/速度/加速度）、有限元分析（SIMULATION模块，应力/变形/模态分析）、管路与电缆（Routing模块，油气管道/线束设计）","技巧：善用特征树重排序、配置化（同一零件不同规格用配置管理，避免存多个文件）、方程式（参数化联动，A变B自动跟着变）"]},
-    ]},
-  ],
-  "excel":[
-    {day:1,title:"界面与基础操作",goal:"熟悉 Excel 界面、工作簿/工作表管理、单元格导航与数据录入。",range:"基础入门",videos:[
-      {title:"Excel 入门教程 / Excel界面介绍 / 单元格操作",knowledge:["工作簿vs工作表：一个xlsx文件=工作簿，里面包含多个工作表（Sheet1/Sheet2…）","功能区：开始、插入、页面布局、公式、数据、审阅、视图七个核心选项卡","单元格定位：A1表示列A行1；Ctrl+方向键跳转到边缘区域；Ctrl+End跳转到有数据的右下角","快速填充：向下拖拽单元格右下角填充柄，双击自动填充到数据末尾","数据类型：文本、数值、日期、货币、百分比、科学计数法，可在「开始」选项卡切换","行高列宽调整：鼠标拖拽行标列标，双击边线自动适配内容","冻结窗格：视图→冻结窗格→冻结首行/首列，大数据表浏览必备"]},
-    ]},
-    {day:2,title:"常用公式基础",goal:"掌握四则运算、SUM/AVG/COUNT、IF条件判断等最常用公式。",range:"公式函数",videos:[
-      {title:"Excel 公式入门 / SUM / AVERAGE / COUNT / IF",knowledge:["公式写法：=开头，例如 =A1+B1*0.8，按回车得到结果","引用类型：A1相对引用（拖拽会变）；$A$1绝对引用（拖拽不变）；$A1混合引用","SUM(A1:A10)：求和，最常用；快捷键Alt+=自动选择相邻求和区域","AVERAGE(A1:A10)：平均值；MEDIAN中位数；MAX/MIN最大最小","COUNT(A1:A10)：只统计数字单元格数量；COUNTA统计非空单元格数量","IF(条件,真值,假值)：二分支，例如 =IF(A1>=60,\"及格\",\"不及格\")","嵌套IF：IF里面再套IF，但建议超过3层就用IFS或查表（VLOOKUP）代替"]},
-    ]},
-    {day:3,title:"条件格式与数据验证",goal:"学会用条件格式高亮关键数据，用数据验证控制输入正确性。",range:"格式校验",videos:[
-      {title:"Excel 条件格式 / 数据验证 / Excel下拉菜单",knowledge:["条件格式：开始→条件格式，支持色阶、图标集、数据条、自定义规则","三色刻度：数据排名可视化，一眼看出高低","突出显示规则：大于/小于/重复值/包含某文本自动变色","自定义规则：用公式控制，例如 =A1<60 整行标红","数据验证（数据有效性）：数据→数据验证，限制输入类型","序列下拉：来源填=区域或逗号分隔，如=Sheet2!$A$1:$A$5，实现下拉菜单","输入提示/出错警告：用户选单元格时给出提示，输错值时友好提示"]},
-    ]},
-    {day:4,title:"VLOOKUP/XLOOKUP与查询",goal:"掌握 VLOOKUP、XLOOKUP、INDEX+MATCH 等查找匹配公式。",range:"查询匹配",videos:[
-      {title:"Excel VLOOKUP / XLOOKUP / INDEX+MATCH",knowledge:["VLOOKUP(查谁,在哪查,返回第几列,是否模糊匹配)：最经典的跨表查询，注意第4参数写FALSE精确匹配","VLOOKUP限制：只能按第一列查，结果必须在查询列右侧","XLOOKUP(找什么,找哪列,返回列,默认值,匹配模式)：365/2021版本新函数，解决VLOOKUP所有痛点","XLOOKUP优势：左右任意方向、支持找不到返回自定义默认值、支持通配符匹配","INDEX(区域,行号,列号)+MATCH(找什么,找哪列,0)：老版本万能组合，兼容性最好","绝对引用注意：查找区域按F4切换绝对引用，否则拖拽公式区域会错位"]},
-    ]},
-    {day:5,title:"排序筛选与分类汇总",goal:"掌握数据排序、高级筛选、分类汇总等数据整理功能。",range:"数据整理",videos:[
-      {title:"Excel 排序筛选 / 分类汇总 / Excel高级筛选",knowledge:["排序：数据→排序，多字段排序（主关键字+次关键字，如先部门再薪资）","升序降序注意：中文按拼音字母序，可在「选项」里切换为笔画序","筛选：数据→筛选，每列表头出现小箭头，快速过滤条件","筛选多选：文本筛选→包含/等于/开头是；数字筛选→大于/Top10/高于平均值","清除筛选：数据→清除筛选","高级筛选：条件区域写复杂条件（同一行AND、不同行OR），可把筛选结果复制到新位置","分类汇总：先排序→数据→分类汇总，按某列分组统计（求和/计数/平均），自动分级折叠"]},
-    ]},
-    {day:6,title:"数据透视表",goal:"理解数据透视表布局字段、行/列/值/筛选器的作用，快速生成多维度报表。",range:"分析工具",videos:[
-      {title:"Excel 数据透视表 / PivotTable教程",knowledge:["创建：选中数据→插入→数据透视表（建议放新工作表）","四大区域：行（横向展开分类）、列（纵向加维度）、值（汇总指标）、筛选器（整表过滤）","值区域字段设置：默认求和，可改为计数/平均/最大/最小/占比","刷新：数据更改后→右键→刷新；属性里可设置打开文件时自动刷新","切片器：插入→切片器，交互式按钮过滤，可视化更友好，适合做Dashboard","时间分组：日期字段右键→组合，按年/季/月/日分层汇总","透视表数据源规范：扁平数据（一行一条明细），禁止合并单元格、禁止空列名"]},
-    ]},
-    {day:7,title:"图表可视化",goal:"掌握常用图表选择、美化与动态图表思路。",range:"可视化",videos:[
-      {title:"Excel 图表教程 / 柱形图 / 折线图 / 动态图表",knowledge:["选对图表：对比用柱形、趋势用折线、构成用饼图（饼图类别≤5）、关系用散点、占比用堆积","创建：选中数据→插入→推荐的图表，先选推荐再手动调整类型","图表元素：坐标轴、数据标签、图例、标题、网格线、数据表格，可在图表右侧+号一键开关","配色：不要用默认花花绿绿，主色+辅助色+中性色三种即可，企业配色找品牌规范","组合图：双Y轴（柱形+折线），例如销量柱形+同比折线","动态图表：数据源绑定透视表切片器或表单控件（窗体控件→组合框/滚动条），点击控件实时切换维度"]},
-    ]},
-    {day:8,title:"日期与文本函数",goal:"掌握 TEXT、LEFT/RIGHT/MID、CONCAT、DATEDIF、EOMONTH 等实用函数。",range:"函数进阶",videos:[
-      {title:"Excel 日期函数 / 文本函数 / TEXT / DATEDIF",knowledge:["TEXT(值,格式)：数字转自定义文本，如=TEXT(A1,\"0000\") 补零成4位；=TEXT(A1,\"yyyy-mm-dd\")日期格式化","LEFT/MID/RIGHT：从左/中间/右截取文本，例如 =MID(A1,7,8) 身份证取出生日期","CONCAT 或 &：拼接文本；建议用TEXTJOIN(分隔符,是否忽略空,区域) 批量拼接更优雅","日期本质：Excel里日期是序列号，1900-01-01=1，所以日期参与加减计算直接=A1+30","DATEDIF(起始,截止,单位)：算年龄/工龄，=DATEDIF(A1,TODAY(),\"y\")周岁；\"m\"月；\"d\"天","EOMONTH(日期,月偏移)：某月最后一天，如=EOMONTH(A1,0)当月最后一天，=EOMONTH(A1,-1)+1当月第一天","NETWORKDAYS(开始,结束,节假日)：工作日天数（排除周末+指定节假日）"]},
-    ]},
-    {day:9,title:"数组公式与多条件统计",goal:"掌握 SUMIF/COUNTIF 系列、SUMPRODUCT、IFS 多条件公式。",range:"函数进阶",videos:[
-      {title:"Excel SUMIFS / COUNTIFS / SUMPRODUCT 多条件统计",knowledge:["SUMIF(条件区,条件,求和区)：单条件求和；SUMIFS(求和区,条件区1,条件1,条件区2,条件2)多条件","COUNTIF/COUNTIFS：单/多条件计数，统计重复值最常用","AVERAGEIF/AVERAGEIFS：单/多条件平均","SUMPRODUCT(数组1,数组2)：老版本神函数，多条件统计无需Ctrl+Shift+E，例如=SUMPRODUCT((A:A=\"技术部\")*(B:B>10000)*B:B)","IFS(条件1,结果1,条件2,结果2…)：替代嵌套IF，更易读，365/2019及以后有","COUNTIFS查重：=COUNTIF($A$1:A1,A1)>1 标注重复","注意：整列引用会影响性能，尽量写死范围，例如 A1:A10000"]},
-    ]},
-    {day:10,title:"综合实战与自动化",goal:"完成报表自动化思路梳理，了解宏/VBA入门与Power Query数据清洗。",range:"综合自动化",videos:[
-      {title:"Excel 自动化 / Power Query / VBA入门",knowledge:["报表自动化三步：①数据源规范化（扁平表） ②清洗/合并（Power Query） ③透视表+切片器出Dashboard","Power Query：数据→获取数据→从文件/从表，编辑器里删列、改类型、合并、追加查询，全是图形操作无代码，刷新即可更新结果","合并多文件：Get Data→从文件夹→Combine，一键合并N个结构相同的Excel文件","宏录制：开发工具→录制宏，操作一遍→停止录制，自动生成VBA代码，重复操作一键完成","VBA入门：宏编辑器Alt+F11，模块里写Sub；语法和VB6类似，能做批量、复杂判断、自定义函数","进阶方向：Python+openpyxl（超复杂场景）、BI工具(Power BI/Tableau)连接Excel数据源、Excel做小型数据库+表单"]},
-    ]},
-  ],
-  "swimming":[
-    {day:1,title:"水性熟悉与憋气训练",goal:"掌握水感、放松心态，完成首次憋气5-10秒，掌握站立与漂浮。",range:"基础第1-2课",videos:[
-      {title:"游泳零基础第1天：水性熟悉、憋气、水中站立",knowledge:["下水前热身：肩环绕、手腕脚踝、弓步压腿、体侧拉伸、颈部绕环，每组30秒；水下抽筋多半因热身不足","池边适应：扶池边把脸埋入水中，先练3秒5秒逐步延长到10秒，克服怕水心理","憋气练习：吸一口气（不要吸太满），捏鼻或用鼻夹，面部入水，数秒后抬头，嘴呼气+鼻同时出气换气","水中站立：水深到胸时，收腿团身（像坐在椅子上）→双手向下划水→脚踩池底→身体直立","水母漂：吸一口气→低头埋水→全身放松自然漂浮→想站立时收腿团身→划水站起","呼吸节奏：水面上用嘴吸→水里口鼻一起慢慢吐（像吹泡泡）→快吐完抬头→再吸，避免抬头时才吸气导致呛水","心理建设：紧张会肌肉紧绷沉得更快，多练放松，水本身浮力足够托住成年人"]},
-    ]},
-    {day:2,title:"打水踢腿与浮板训练",goal:"掌握自由泳腿（直腿上抬、曲腿下压）和蛙泳腿（收翻蹬夹）的基本动作。",range:"基础第3-4课",videos:[
-      {title:"自由泳腿 & 蛙泳腿教学 / 浮板踢腿训练",knowledge:["自由泳打腿口诀：直腿上抬（膝盖不弯，像一根棍）、曲腿下压（像用脚面甩水），膝盖不要出水面","浮板打腿：双手握浮板前端，身体平直，头埋水里侧转换气，打腿幅度小而快（6次腿/2划手）","蛙泳腿口诀：收腿慢（脚跟靠近臀部）、翻脚快（脚面外翻像翻书，膝盖外开不超过肩宽）、蹬夹有力（向外向后蹬→快速夹腿并拢）","蛙泳腿常见错误：收腿过紧（大腿贴肚子）→阻力大；不翻脚→蹬不到水；蹬完不夹→前进动力损失一半","常见打腿错误：小腿打水（像骑自行车，应该髋发力）；踢水出水（水花大但不前进）","训练方法：扶板25米打腿×5组，组间休息30秒，目标是25米能连续打腿不断"]},
-    ]},
-    {day:3,title:"蛙泳腿部完整配合",goal:"熟练蛙泳收翻蹬夹，加入滑行，一次腿+一次滑行+一次呼吸节奏。",range:"蛙泳专项",videos:[
-      {title:"蛙泳腿完整训练 & 滑行练习",knowledge:["蛙泳节奏：划手→抬头吸气→收腿→蹬夹→滑行2秒，这是一次完整循环","滑行的重要性：蹬夹后身体伸直漂浮，利用惯性前进，这是蛙泳省力的关键；初学者最容易滑行不够就急着下一次","收翻蹬夹拆解：收腿慢（3秒）→翻脚快（1秒）→蹬夹用力（1秒）→滑行（2秒）","身体姿态：滑行时身体像一根箭，头不抬（平视池底），背不塌，腿伸直并拢","蹬夹发力：大腿先蹬→最后脚踝发力并拢，像个W形快速合起来","常见错误：抬头蹬腿（破坏平衡、身体下沉）；收翻同时进行（没节奏、速度出不来）","训练：25米蛙泳腿×6组，每组数动作次数，目标是一趟动作数越来越少说明滑行有效"]},
-    ]},
-    {day:4,title:"蛙泳划手与呼吸配合",goal:"掌握蛙泳划手动作、划手-抬头吸气节奏，完整1次划手+1次腿+1次呼吸配合。",range:"蛙泳专项",videos:[
-      {title:"蛙泳划手教学 & 划手+呼吸+蹬腿配合",knowledge:["蛙泳划手：双手前伸→向两侧分水（宽于肩）→屈肘抱水（像抱个球）→快速夹肘前伸回到前伸位置","划手口诀：划-抱-夹-伸，四步连贯，划手不要超过肩膀","呼吸配合：划手开始的同时抬头（不要用力仰，依靠划手的升力自然抬头）→张嘴吸气→夹肘前伸时脸入水→慢慢呼气","配合节奏：外划抬头吸气→收手同时收腿→前伸开始蹬夹→蹬夹结束滑行","常见错误：先蹬腿再划手（顺序反了，正确是划手收腿同步、前伸后蹬）；划手太大（超过肩导致身体扭动）；吸气时撑手（手不动只抬头，升力不够）","训练：陆上模仿（靠墙站立练划手+收腿同步）→水下扶池边练配合→短距离25米"]},
-    ]},
-    {day:5,title:"自由泳划手与换气",goal:"掌握自由泳划手入水-抱水-推水-出水-空中移臂，加入转头换气。",range:"自由泳专项",videos:[
-      {title:"自由泳划手分解教学 & 侧身换气",knowledge:["自由泳划手：入水（手掌斜插，中指先入水，在头前方位置）→抱水（屈肘像抱个大桶，手掌对准后方）→推水（S形向后推到大腿旁）→出水（提肘）→空中移臂（屈肘高肘）","高肘移臂：肘比手高，像过栅栏一样从水面上甩过去，避免侧身不够","转头换气：身体侧转（不是抬头！）→下巴贴肩膀→嘴露出水面吸气→转回正面脸入水呼气","换气三步骤：划手推水时身体侧转→同侧转头吸气（划右手→右侧转头换气）→移臂时转回正面","节奏：6次打腿+2次划手+1次换气；初学者先练3划换一次气（两边换），平衡更好","常见错误：抬头换气（塌腰、下沉）；只转头不转体（嘴出不来水、吸不到气）；划手过中线（身体蛇形扭动）","训练：扶板单臂划手×左右各50米→脱板25米→50米慢慢延长距离"]},
-    ]},
-    {day:6,title:"仰泳入门与踩水",goal:"掌握仰泳身体姿态、反蛙泳腿和踩水（原地漂浮不沉）技巧。",range:"救生&多泳姿",videos:[
-      {title:"仰泳入门 / 踩水教程（原地漂浮）",knowledge:["仰泳姿势：平躺水面，肚子像装了个西瓜（挺腰不要塌），头后仰，耳朵入水，眼睛看脚的方向","反蛙泳腿（蛙式仰泳腿）：收腿（膝盖向两侧开）→翻脚→蹬夹并拢，和蛙泳腿类似只是仰面做","仰泳打腿（自由泳反）：交替上踢下压，直腿上抬、曲腿下压，膝盖不露出水面","踩水（立泳）：最实用是蛙式踩水，身体直立→收腿→翻脚→蹬夹，手在胸前小范围拨水保持平衡","踩水用途：在深水区休息、等朋友、穿脱衣物、观察方向；救生员标准踩水30秒以上为合格","常见错误：仰泳坐起来（屁股下沉、像坐在椅子里，一定要挺腰展髋）；踩水频率太快（慢慢的大动作更省力）","穿衣服游泳（应急训练）：落水自救训练，衣服吸水重更费力，仰泳+蛙式踩水最省力"]},
-    ]},
-    {day:7,title:"出发与转身（蹬壁）",goal:"掌握蹬壁出发（平地起跳+水下蝶泳腿）、自由泳/蛙泳触壁滚翻转身。",range:"进阶技术",videos:[
-      {title:"游泳出发 & 转身蹬壁 / 翻滚转身",knowledge:["水下蹬壁：深水池壁，双手前伸，身体紧贴池壁，脚弓蹬在池壁上→用力蹬出→呈流线型滑行，直到速度变慢再开始打腿/划手","平地出发（跳发）：站出发台→弯腰抓台→蹬台→身体像箭一样入水（手先头后）→滑行→蝶泳腿/打腿3-5次→出水划手","自由泳翻滚转身（Flip Turn）：游近池壁→低头团身→翻跟头（臀部翻过头顶）→脚蹬壁→侧转身体→蹬出滑行","蛙泳触壁转身：触壁前最后一次划手→一只手触壁→团身收腿（像翻个跟头）→另一只手前伸→双脚蹬壁","注意：翻滚转身前不要吸气（容易呛水），转身过程中慢慢呼气；触壁前速度不要减，利用惯性翻得更快","训练：100米=25×4趟，每趟必须转身，强迫自己练习，一周后明显改善25米时间"]},
-    ]},
-    {day:8,title:"耐力训练与配速",goal:"通过间歇训练提升心肺耐力，学习按配速节奏完成200米不停歇。",range:"体能训练",videos:[
-      {title:"游泳耐力训练 / 间歇训练 / 完成200米",knowledge:["金字塔训练：100米→150米→200米→150米→100米，中间休息时间=游泳时间×0.5","间歇训练（提高心肺最有效）：50米快速游+20秒休息×8组，心率维持在最大心率70%","配速感觉：巡航速度（说话只能说短句）；慢速有氧（能完整说一句话）；冲刺（说不出话）","呼吸升级：蛙泳5次动作换1次呼吸→7次→9次，提升水下憋气耐力+放松水平","200米完赛策略：第一趟50米慢速找节奏；第二50米加速；第三50米稳住；第四50米冲刺（如果还力的话）","心率参考：静息60-70；有氧区间（220-年龄）×65%；不超过（220-年龄）×85%","训练日志：每次记下50米/100米成绩、组数、主观疲劳度（1-10分），2周后对比明显进步"]},
-    ]},
-    {day:9,title:"动作纠正与进阶方向",goal:"用水下视频对比分析自身动作错误，了解四大泳姿进阶路径。",range:"技术精进",videos:[
-      {title:"游泳动作纠正常见错误 & 进阶方向（蝶泳/混合泳）",knowledge:["自我检查法：让朋友录水下视频→对比教学视频，找出差异点（划手过中线？塌腰？翻脚不够？）","常见蛙泳错误排名：①滑行不够（急着下次动作） ②蹬夹无力（翻脚不对） ③抬头太高 ④配合顺序错","常见自由泳错误排名：①抬头换气 ②划手过中线 ③高肘不够 ④身体不侧转 ⑤打腿像骑自行车","进阶方向：蝶泳（波浪腰腹发力、第二腿打腿时机、海豚腿）、混合泳（蝶→仰→蛙→自顺序）、公开水域（公开水域游泳+潮汐+导航）、铁人三项（游泳750米+骑车20公里+跑步5公里）","装备升级：竞速泳镜（防雾镀膜）、硅胶泳帽（长发用）、手蹼脚蹼（练力量）、呼吸管（专注下半身动作）"]},
-    ]},
-    {day:10,title:"1000米实战 + 长期规划",goal:"完成1000米不间断游泳挑战，制定周训练计划和长期提升路径。",range:"综合实战",videos:[
-      {title:"1000米挑战 & 周训练计划制定 / 长期提升路径",knowledge:["1000米配速分配：蛙泳50米×15+自由泳50米×5 或者 10趟×100米，关键是保持均匀速度不要前快后崩","恢复动作：游不动就换仰泳漂30秒再继续，不要硬撑；踩水休息也是休息","周计划模板：3次/周，每次60-90分钟：热身500米→技术练习×5→主项×8→放松200米","动作进步法：每次训练只聚焦纠正1个点（本周练高肘，下周练翻脚），不要一次改太多","肌肉激活：核心（平板支撑/俄罗斯转体）、肩袖（弹力带外旋）、臀中肌（侧抬腿），陆上力量训练可大幅提升水中表现","进阶目标清单：50米蛙泳≤50秒、100米自由泳≤2分30秒、完成1500米、学会蝶泳50米、参加一次群众游泳比赛","长期提升：跟教练学10节课纠正动作 > 自己瞎练2年，遇到瓶颈（连续4周无进步）务必找教练"]},
-    ]},
-  ],
-};
+// 知识点汇总：预填充数据来自 modules/*.js（内置模块由 embeddedPlan 自动生成，
+// template 模块使用其 knowledgePreset），修改学习内容只改对应模块文件即可
+const KPB_PRESETS = {};
+Object.keys(window.LearningModules || {}).forEach(id=>{
+  const m = window.LearningModules[id];
+  if(!m) return;
+  if(m.type === "builtin" && m.embeddedPlan){
+    KPB_PRESETS[id] = m.embeddedPlan.map(d=>({
+      day: d.day, title: d.title, goal: d.goal, range: d.range || "",
+      videos: (d.videos || []).map(v=>({title: v.title, page: v.page, url: v.url || "", knowledge: v.knowledge || []}))
+    }));
+  } else if(m.knowledgePreset){
+    KPB_PRESETS[id] = m.knowledgePreset;
+  }
+});
 
 // 知识点汇总：当前选中的软件
 let kpCurrentSoftware = null;
@@ -3411,9 +2832,10 @@ function kpBackToList(){
 function kpGoCheckin(){
   if(!kpCurrentSoftware) return;
   const sw = kpCurrentSoftware;
-  if(sw.id === "ug-nx12"){
-    switchView('ug');
-  } else if(sw.link){
+  const cfg = BUILTIN_CONFIGS[sw.id];
+  if(cfg && BUILTIN_VIEWS_BY_ID[sw.id]){
+    switchView(BUILTIN_VIEWS_BY_ID[sw.id]);
+  } else if(sw.link && sw.link !== '#'){
     window.location.href = sw.link;
   }
 }

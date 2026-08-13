@@ -1,12 +1,18 @@
-// UG NX 12.0 打卡日历 - Service Worker
+// 学习打卡中心 - Service Worker
 // 实现离线访问和APP化
 
-const CACHE_NAME = "study-checkin-center-v9";
+const CACHE_NAME = "study-checkin-center-v11";
 const CACHE_FILES = [
   "./",
   "./index.html",
   "./template.html",
   "./manifest.json",
+  "./modules/ug-nx12.js",
+  "./modules/digital-basics.js",
+  "./modules/dji-action4.js",
+  "./modules/solidworks.js",
+  "./modules/excel.js",
+  "./modules/swimming.js",
 ];
 
 // 安装：缓存核心文件

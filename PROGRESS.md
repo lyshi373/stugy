@@ -1,6 +1,6 @@
 # 项目进展文档
 
-> 最后更新：2026-08-06
+> 最后更新：2026-08-13
 > 项目名称：学习打卡中心 · 多软件自学打卡系统
 
 ---
@@ -11,6 +11,13 @@
 docs-project-progress-Y9iLEE/
 ├── index.html          # 主入口（首页、UG打卡、知识点汇总）
 ├── template.html       # 通用打卡模板（DJI/SolidWorks/Excel/游泳/自定义）
+├── modules/            # 软件学习内容模块（每个软件一个文件）
+│   ├── ug-nx12.js      # UG NX 12.0（内嵌打卡）
+│   ├── digital-basics.js  # 数字化入门（内嵌打卡）
+│   ├── dji-action4.js  # DJI Action 4（模板打卡）
+│   ├── solidworks.js   # SolidWorks（模板打卡）
+│   ├── excel.js        # Excel（模板打卡）
+│   └── swimming.js     # 游泳（模板打卡）
 ├── manifest.json       # PWA 应用配置
 ├── sw.js               # Service Worker（离线缓存）
 ├── README.md           # 用户使用说明
@@ -69,6 +76,39 @@ docs-project-progress-Y9iLEE/
 ---
 
 ## 🔧 最近修改历史
+
+### 2026-08-13 数字化模块接入 B站视频（内嵌播放）
+
+**需求**：数字化入门模块的 20 个视频此前没有预设链接，每次都要手动去 B站 搜索，希望直接内嵌播放。
+
+**改动**
+- [modules/digital-basics.js](./modules/digital-basics.js)：20 个视频全部配置了对应的 B站 BV 号（`bvid` 字段），点击课程弹窗后直接在页面内播放，标题下方显示「BV 号 · 第 1 P」并提供「在 B站 原页观看」跳转，无需再手动搜索
+- 视频按 10 天主题逐一匹配：ChatGPT 入门/注册、Prompt、Canvas、代码解释器、Python、Codex、Cursor、Copilot、Agent、LangChain、RAG、部署等均有对应教程
+- `planVersion` 升级为 `20260813-v2`：用户端打开后会自动刷新学习计划内容（已打卡记录与笔记不受影响）
+- `sw.js` 缓存版本升到 v11，确保离线/缓存的浏览器能拿到新模块文件
+- [tools/test_app.js](./tools/test_app.js)：新增断言「数字化弹窗内嵌 B站播放器」「20 个视频全部配置合法 BV 号」（33/33 通过）
+- [tools/verify_modules.js](./tools/verify_modules.js)：重写为独立的模块数据一致性校验（原脚本依赖重构前已删除的内联数据，已失效）
+
+> 说明：受当前网络限制无法逐一在线核验每个 BV 号，BV 均来自 B站 官方页面搜索结果；如个别视频失效，只需在模块文件中把对应 `bvid` 换成新 BV 号即可（修改后记得把 `planVersion` 递增）。
+
+### 2026-08-13 模块化重构 + 修复数字化模块
+
+**问题**
+1. 新增的「数字化入门」模块点击后仍进入 UG 学习界面
+2. 知识点汇总页不显示任何内容
+
+**根因**
+- 首页渲染把所有 `builtin` 类型模块都写死为 `switchView('ug')`
+- `index.html` 末尾的数字化 10 天数据被截断（字符串未闭合），导致整个知识点脚本块语法错误、知识点页面代码全部未加载
+- 旧的 `BUILTIN_CONFIGS` 引用了不存在的 `digitalPlan`，且没有 `view-digital` 视图
+
+**改造**
+- 新增 `modules/` 目录：每个软件一份文件（学习内容 + 配置），主程序统一加载
+- 新增通用内嵌打卡引擎 `BI.*`：UG 和数字化共用一套日历/打卡/导出逻辑，按模块配置驱动
+- 新增 `view-digital` 视图，首页按模块路由，不再写死进 UG
+- 知识点汇总页数据改为由模块自动生成（内置模块由 `embeddedPlan` 生成，模板模块用 `knowledgePreset`）
+- `template.html` 的预填充数据同样改为从 `modules/` 加载（单一数据源）
+- 补全了数字化 Day10 被截断的知识点；升级缓存版本到 v10
 
 ### 2026-08-06 修复视频播放问题
 
