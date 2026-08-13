@@ -247,6 +247,7 @@
   .restore-panel-empty{
     text-align:center;padding:40px 20px;color:#9ca3af;font-size:13px;
   }
+  .hidden-section-title{font-size:12px;color:#9ca3af;margin:12px 0 8px;font-weight:600;}
   .restore-item{
     display:flex;align-items:center;padding:12px 14px;
     background:#f9fafb;border-radius:10px;margin-bottom:8px;gap:12px;
@@ -1195,7 +1196,7 @@
       </details>
       <details>
         <summary>为什么首页没有 UG / DJI / SolidWorks？Excel 为什么需要密码？</summary>
-        <p>部分模块已按管理需要隐藏或加密：UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。需要恢复或修改密码时，请联系管理员调整 index.html 顶部的 HIDDEN_SOFTWARE_IDS 与 PASSWORD_SOFTWARE 配置。</p>
+        <p>UG、DJI、SolidWorks 默认不显示，Excel 需输入密码进入。想恢复 UG / DJI / SolidWorks：点左下角「👁 已隐藏」→「默认隐藏模块」→ 点「显示」即可；修改 Excel 密码需联系管理员调整 index.html 顶部的 PASSWORD_SOFTWARE。</p>
       </details>
       <details>
         <summary>如何隐藏某个软件？如何恢复显示？</summary>
@@ -1396,7 +1397,7 @@ const CACHE_VERSION = "v13"; // 与 sw.js 中的 CACHE_NAME 保持一致
 // 想调整首页展示顺序 / 是否展示，改下面两个 ID 数组即可
 // ================================================================
 const DEFAULT_SOFTWARE_IDS = ["ug-nx12", "dji-action4", "swimming"]; // 首页核心模块
-const EXTENDED_SOFTWARE_IDS = ["digital-basics", "excel"];           // 扩展模块（同样展示）
+const EXTENDED_SOFTWARE_IDS = ["digital-basics", "excel", "solidworks"]; // 扩展模块（同样展示）
 
 // ============ 显示与访问控制 ============
 // 主界面隐藏的软件：不出现在首页与知识点列表（模块文件仍保留，改回 [] 即可恢复显示）
@@ -1507,11 +1508,14 @@ function loadSoftwareRaw(){
   list = list.filter(s=>allHidden.indexOf(s.id) < 0);
   return list;
 }
-// 对外可用的软件列表：过滤代码级隐藏（HIDDEN_SOFTWARE_IDS）+ 用户界面隐藏（checkin_hidden_ui）
+// 用户主动选择「显示」的默认隐藏模块（覆盖 HIDDEN_SOFTWARE_IDS）
+function loadUiShow(){ return JSON.parse(localStorage.getItem("checkin_ui_show") || "[]"); }
+// 对外可用的软件列表：过滤代码级隐藏（HIDDEN_SOFTWARE_IDS，用户未手动显示时）+ 用户界面隐藏（checkin_hidden_ui）
 function loadSoftware(){
   const list = loadSoftwareRaw();
   const uiHidden = JSON.parse(localStorage.getItem("checkin_hidden_ui") || "[]");
-  return list.filter(s=>HIDDEN_SOFTWARE_IDS.indexOf(s.id) < 0 && uiHidden.indexOf(s.id) < 0);
+  const uiShow = loadUiShow();
+  return list.filter(s=> (HIDDEN_SOFTWARE_IDS.indexOf(s.id) < 0 || uiShow.indexOf(s.id) >= 0) && uiHidden.indexOf(s.id) < 0);
 }
 // 加载核心模块（首页使用，不含扩展软件）
 function loadCoreSoftware(){
@@ -1724,9 +1728,12 @@ function deleteSoftware(id){
 
 /* ============ 隐藏 / 恢复软件（界面操作） ============ */
 function loadUiHidden(){ return JSON.parse(localStorage.getItem("checkin_hidden_ui") || "[]"); }
+function defaultHiddenCount(){
+  return HIDDEN_SOFTWARE_IDS.filter(id=>getModule(id) && loadUiShow().indexOf(id) < 0).length;
+}
 function updateHiddenFab(){
   const fab = document.getElementById("hiddenFab");
-  if(fab) fab.style.display = loadUiHidden().length > 0 ? "" : "none";
+  if(fab) fab.style.display = (loadUiHidden().length + defaultHiddenCount()) > 0 ? "" : "none";
 }
 function hideSoftware(id){
   const sw = loadSoftwareRaw().find(s=>s.id===id);
@@ -1739,30 +1746,44 @@ function hideSoftware(id){
   renderList();
   updateHiddenFab();
 }
+function hiddenItemHtml(sw, action){
+  const letter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
+  const tagText = sw.type==="builtin" ? "（内置）" : "（自定义）";
+  return `
+    <div class="restore-item">
+      <div class="restore-item-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${letter}</div>
+      <div class="restore-item-info">
+        <div class="restore-item-name">${sw.name}${tagText}</div>
+        <div class="restore-item-desc">${sw.desc||''} · ${sw.days||10}天计划</div>
+      </div>
+      <div class="restore-item-actions">
+        <button class="restore-btn restore-btn-primary" onclick="${action}">显示</button>
+      </div>
+    </div>`;
+}
 function openHiddenPanel(){
   const uiHidden = loadUiHidden();
-  const list = loadSoftwareRaw().filter(s=>uiHidden.indexOf(s.id) >= 0);
+  const userHidden = loadSoftwareRaw().filter(s=>uiHidden.indexOf(s.id) >= 0);
+  const defaultHidden = HIDDEN_SOFTWARE_IDS.map(getModule).filter(Boolean).map(softwareFromModule).filter(s=>loadUiShow().indexOf(s.id) < 0);
   const box = document.getElementById("hiddenPanelList");
-  if(list.length === 0){
-    box.innerHTML = '<div class="restore-panel-empty">暂无已隐藏的软件</div>';
-  } else {
-    box.innerHTML = list.map(sw=>{
-      const letter = sw.iconLetter || sw.name.charAt(0).toUpperCase();
-      const tagText = sw.type==="builtin" ? "（内置）" : "（自定义）";
-      return `
-        <div class="restore-item">
-          <div class="restore-item-icon" style="background:linear-gradient(135deg,${sw.color},${sw.color}cc);">${letter}</div>
-          <div class="restore-item-info">
-            <div class="restore-item-name">${sw.name}${tagText}</div>
-            <div class="restore-item-desc">${sw.desc||''} · ${sw.days||10}天计划</div>
-          </div>
-          <div class="restore-item-actions">
-            <button class="restore-btn restore-btn-primary" onclick="unhideSoftware('${sw.id}')">显示</button>
-          </div>
-        </div>`;
-    }).join("");
+  let html = "";
+  if(userHidden.length){
+    html += '<div class="hidden-section-title">📂 已通过卡片隐藏</div>' + userHidden.map(sw=>hiddenItemHtml(sw, `unhideSoftware('${sw.id}')`)).join("");
   }
+  if(defaultHidden.length){
+    html += '<div class="hidden-section-title">🛠 默认隐藏模块（点击显示）</div>' + defaultHidden.map(sw=>hiddenItemHtml(sw, `showDefaultModule('${sw.id}')`)).join("");
+  }
+  box.innerHTML = html || '<div class="restore-panel-empty">暂无已隐藏的软件</div>';
   document.getElementById("hiddenPanelMask").classList.add("show");
+}
+function showDefaultModule(id){
+  const uiShow = loadUiShow();
+  if(uiShow.indexOf(id) < 0) uiShow.push(id);
+  localStorage.setItem("checkin_ui_show", JSON.stringify(uiShow));
+  renderList();
+  updateHiddenFab();
+  openHiddenPanel();
+  showToast("已恢复显示");
 }
 function closeHiddenPanel(e){
   if(e && e.target !== document.getElementById("hiddenPanelMask")) return;
@@ -1777,6 +1798,11 @@ function unhideSoftware(id){
 }
 function unhideAll(){
   localStorage.setItem("checkin_hidden_ui", "[]");
+  const uiShow = loadUiShow();
+  HIDDEN_SOFTWARE_IDS.forEach(id=>{
+    if(getModule(id) && uiShow.indexOf(id) < 0) uiShow.push(id);
+  });
+  localStorage.setItem("checkin_ui_show", JSON.stringify(uiShow));
   renderList();
   updateHiddenFab();
   closeHiddenPanel();

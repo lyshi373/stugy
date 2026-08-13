@@ -186,7 +186,7 @@ globalThis.__T = {
   kpRenderSoftwareList, kpShowKnowledge, kpGetPlanData, kpGoCheckin,
   kpCurrentSoftware: () => kpCurrentSoftware,
   openPwdModal, confirmPwd, kpCheckAccess, loadSoftware,
-  hideSoftware, unhideSoftware
+  hideSoftware, unhideSoftware, showDefaultModule, openHiddenPanel
 };
 globalThis.__setKp = function(sw){ kpCurrentSoftware = sw; };
 `;
@@ -289,6 +289,13 @@ check("隐藏FAB出现", app("document.getElementById('hiddenFab').style.display
 app("__T.unhideSoftware('swimming')");
 check("恢复显示后回到列表", app("__T.loadSoftware()").some(s=>s.id==="swimming"));
 
+/* 默认隐藏模块（UG/DJI/SolidWorks）恢复显示 */
+app("__T.openHiddenPanel()");
+const hiddenPanelHtml = app("document.getElementById('hiddenPanelList').innerHTML");
+check("已隐藏面板列出默认隐藏模块", hiddenPanelHtml.includes("默认隐藏模块") && hiddenPanelHtml.includes("UG NX 12.0"));
+app("__T.showDefaultModule('ug-nx12')");
+check("默认隐藏模块显示后回到列表", app("__T.loadSoftware()").some(s=>s.id==="ug-nx12"));
+
 /* UG 打卡视图（回归） */
 app("__T.switchView('ug')");
 check("UG日历10天", app("document.getElementById('ugCalendarGrid').children.length") === 10);
@@ -312,9 +319,9 @@ check("数字化知识点统计", kpStats.includes("10") && kpStats.includes("20
 app("__T.kpShowKnowledge('swimming')");
 const swimDetail = app("document.getElementById('kpContent').innerHTML");
 check("游泳知识点详情正常", swimDetail.includes("下水前热身"));
-app("__T.kpShowKnowledge('ug-nx12')");
-const ugKp = app("document.getElementById('kpContent').innerHTML");
-check("隐藏模块UG不可从知识点页打开", ugKp.includes("下水前热身") && !ugKp.includes("UG NX 12.0 启动方式"));
+app("__T.kpShowKnowledge('solidworks')");
+const swKp = app("document.getElementById('kpContent').innerHTML");
+check("隐藏模块SolidWorks不可从知识点页打开", swKp.includes("下水前热身") && !swKp.includes("SolidWorks"));
 
 /* 重分配逻辑（UG 改 20 天） */
 const rd = app("__T.BI.redistribute(__T.BUILTIN_CONFIGS['ug-nx12'], 20)");
